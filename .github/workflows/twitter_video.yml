@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       tweet_url:
-        description: "Twitter Video URL"
-        required: true  # التأكد من أنه مطلوب
-        type: string
+        description: "رابط التغريدة"
+        required: true
 
 jobs:
   download-video:
@@ -21,12 +20,12 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: 📦 تثبيت yt-dlp
+      - name: 📦 تثبيت yt-dlp و requests
         run: |
           python -m pip install --upgrade pip
-          pip install yt-dlp
+          pip install yt-dlp requests
 
       - name: 🎥 تشغيل كود استخراج رابط الفيديو
-        run: python twitter_video.py
         env:
-          TWEET_URL: ${{ github.event.inputs.tweet_url }}  # تمرير رابط التغريدة إلى الكود
+          TWEET_URL: ${{ github.event.inputs.tweet_url }}
+        run: python twitter_video.py
