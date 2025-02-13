@@ -1,11 +1,11 @@
-name: Twitter Video Downloader
+name: Twitter Video Extractor API
 
 on:
-  workflow_dispatch:  # ✅ يسمح بتشغيل الـ workflow عبر API
+  workflow_dispatch:  # يتيح تشغيل GitHub Actions عبر API
 
 jobs:
   download-video:
-    runs-on: ubuntu-latest  # ✅ تشغيل على Ubuntu (مجاني)
+    runs-on: ubuntu-latest  # تشغيل على Linux (مجاني)
 
     steps:
       - name: 🛠️ تحميل المستودع
@@ -16,10 +16,10 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: 📦 تثبيت yt-dlp
+      - name: 📦 تثبيت المكتبات المطلوبة
         run: |
           python -m pip install --upgrade pip
-          pip install yt-dlp
+          pip install yt-dlp requests
 
-      - name: 🎥 تشغيل كود تحميل الفيديو
+      - name: 🎥 تشغيل كود استخراج رابط الفيديو
         run: python twitter_video.py
