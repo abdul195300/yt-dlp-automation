@@ -1,40 +1,45 @@
 import yt_dlp
+import json
+import requests
+import os
 
-def download_twitter_video(url):
-    """تحميل الفيديو من تويتر باستخدام yt-dlp مع التحقق مما إذا كان الرابط يحتوي على فيديو."""
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # رمز API الخاص بـ GitHub
+REPO_OWNER = "اسم_المستخدم_في_GitHub"
+REPO_NAME = "اسم_المستودع_في_GitHub"
 
-    ydl_opts = {
-        'outtmpl': '%(title)s.%(ext)s',
-        'format': 'bestvideo+bestaudio/best',
-        'verbose': True,  # لعرض تفاصيل التحميل
-        'noplaylist': True,  # منع تحميل قائمة تشغيل بالكامل
-        'socket_timeout': 30  # مهلة زمنية 30 ثانية لمنع التأخير الطويل
-    }
+def get_twitter_video_url(url):
+    """استخراج رابط الفيديو المباشر من تويتر بدون تحميل."""
+
+    ydl_opts = {'quiet': True, 'socket_timeout': 10, 'noplaylist': True}
 
     try:
-        print(f"🔍 جاري تحليل رابط الفيديو: {url}")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-
-            # التحقق مما إذا كان الرابط يحتوي على فيديو
-            if 'entries' in info:
-                video_info = info['entries'][0]  # أول عنصر في القائمة
-            else:
-                video_info = info
+            video_info = info['entries'][0] if 'entries' in info else info
 
             if 'formats' not in video_info or not video_info['formats']:
-                print("❌ الرابط لا يحتوي على فيديو.")
-                return
+                return "❌ الرابط لا يحتوي على فيديو."
 
-            # تحميل الفيديو إذا كان متاحًا
-            print("🎥 جاري تحميل الفيديو...")
-            ydl.download([url])
-            print("✅ تم تحميل الفيديو بنجاح.")
+            return f"✅ رابط الفيديو: {video_info['url']}"
 
-    except yt_dlp.utils.DownloadError as e:
-        print(f"⚠️ خطأ أثناء التحميل: {str(e)}")
-        print("❌ الرابط لا يحتوي على فيديو.")
+    except yt_dlp.utils.DownloadError:
+        return "❌ الرابط لا يحتوي على فيديو."
 
-# تجربة الكود برابط من تويتر
-twitter_video_url = "https://x.com/NewsNow4USA/status/1889252022869782792"  # استبدل بالرابط الذي تريد اختباره
-download_twitter_video(twitter_video_url)
+# 🔹 جلب رابط التغريدة من Event Payload
+event_payload_path = os.getenv("GITHUB_EVENT_PATH")
+with open(event_payload_path, "r") as f:
+    event_payload = json.load(f)
+    tweet_url = event_payload["client_payload"]["tweet_url"]
+
+result = get_twitter_video_url(tweet_url)
+
+# 🔹 إرسال النتيجة إلى PyCharm عبر GitHub API
+def send_result_to_pycharm(result):
+    response = requests.post(
+        f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues",
+        headers={"Authorization": f"token {GITHUB_TOKEN}"},
+        json={"title": "نتيجة تحليل التغريدة", "body": result}
+    )
+    print(response.json())
+
+send_result_to_pycharm(result)
