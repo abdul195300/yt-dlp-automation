@@ -1,5 +1,6 @@
 name: Twitter Video Extractor API
-
+on:
+  workflow_dispatch:  # يتيح تشغيل GitHub Actions عبر API
 on:
   repository_dispatch:  # استقبال الطلبات من PyCharm
 
