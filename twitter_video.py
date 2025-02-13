@@ -1,36 +1,40 @@
 import yt_dlp
-import sys
-import json
-import requests
 
-WEBHOOK_URL = "https://your-server.com/api/github-result"  # ضع API لاستقبال النتيجة
+def download_twitter_video(url):
+    """تحميل الفيديو من تويتر باستخدام yt-dlp مع التحقق مما إذا كان الرابط يحتوي على فيديو."""
 
-def check_twitter_video(url):
-    ydl_opts = {'format': 'bestvideo+bestaudio/best', 'quiet': True}
+    ydl_opts = {
+        'outtmpl': '%(title)s.%(ext)s',
+        'format': 'bestvideo+bestaudio/best',
+        'verbose': True,  # لعرض تفاصيل التحميل
+        'noplaylist': True,  # منع تحميل قائمة تشغيل بالكامل
+        'socket_timeout': 30  # مهلة زمنية 30 ثانية لمنع التأخير الطويل
+    }
 
     try:
+        print(f"🔍 جاري تحليل رابط الفيديو: {url}")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
+            # التحقق مما إذا كان الرابط يحتوي على فيديو
             if 'entries' in info:
-                video_info = info['entries'][0]
+                video_info = info['entries'][0]  # أول عنصر في القائمة
             else:
                 video_info = info
 
             if 'formats' not in video_info or not video_info['formats']:
-                result = {"tweet_url": url, "video_url": "❌ الرابط لا يحتوي على فيديو."}
-            else:
-                result = {"tweet_url": url, "video_url": video_info['url']}
+                print("❌ الرابط لا يحتوي على فيديو.")
+                return
 
-            # إرسال النتيجة إلى API
-            requests.post(WEBHOOK_URL, json=result)
-            print(json.dumps(result))  # طباعة النتيجة
+            # تحميل الفيديو إذا كان متاحًا
+            print("🎥 جاري تحميل الفيديو...")
+            ydl.download([url])
+            print("✅ تم تحميل الفيديو بنجاح.")
 
-    except yt_dlp.utils.DownloadError:
-        result = {"tweet_url": url, "video_url": "❌ الرابط لا يحتوي على فيديو."}
-        requests.post(WEBHOOK_URL, json=result)
-        print(json.dumps(result))
+    except yt_dlp.utils.DownloadError as e:
+        print(f"⚠️ خطأ أثناء التحميل: {str(e)}")
+        print("❌ الرابط لا يحتوي على فيديو.")
 
-if __name__ == "__main__":
-    tweet_url = sys.argv[1]
-    check_twitter_video(tweet_url)
+# تجربة الكود برابط من تويتر
+twitter_video_url = "https://x.com/NewsNow4USA/status/1889252022869782792"  # استبدل بالرابط الذي تريد اختباره
+download_twitter_video(twitter_video_url)
