@@ -1,11 +1,11 @@
-name: Twitter Video Downloader
+name: Twitter Video Extractor API
 
 on:
-  workflow_dispatch:  # زر تشغيل يدوي من GitHub Actions
+  repository_dispatch:  # يسمح لـ PyCharm بإرسال الطلب إلى GitHub
 
 jobs:
-  download-video:
-    runs-on: ubuntu-latest  # استخدام Linux (مجاني بالكامل)
+  extract-video-url:
+    runs-on: ubuntu-latest  # تشغيل على سيرفر Linux مجانًا
 
     steps:
       - name: 🛠️ تحميل المستودع
@@ -14,15 +14,12 @@ jobs:
       - name: 🐍 تثبيت Python والاعتماديات
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # يمكنك تغييره للإصدار المناسب
+          python-version: '3.9'
 
       - name: 📦 تثبيت yt-dlp
         run: |
           python -m pip install --upgrade pip
           pip install yt-dlp
 
-      - name: 🎥 تشغيل كود تحميل الفيديو
-        run: |
-          echo "🔍 بدء تنفيذ كود التحميل..."
-          timeout 300 python twitter_video.py || echo "⚠️ المهلة انتهت أو فشل التحميل!"
-        continue-on-error: false  # إذا فشل التحميل، لن يكمل باقي الخطوات
+      - name: 🎥 تشغيل كود استخراج رابط الفيديو
+        run: python twitter_video.py
