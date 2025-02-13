@@ -32,7 +32,7 @@ tweet_url = os.getenv("TWEET_URL")
 video_url = extract_video_url(tweet_url)
 
 # رابط الـ Webhook في Make.com
-MAKE_WEBHOOK_URL = "https://hook.us1.make.com/xxxxxxx"  # استبدل هذا بـ رابط Webhook الفعلي في Make.com
+MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/ijtimfp41bqh6upl2qnmvcqu6fyacizl"  # استبدل هذا بـ رابط Webhook الفعلي في Make.com
 
 if video_url:
     payload = {
