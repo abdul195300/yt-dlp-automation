@@ -1,12 +1,17 @@
 name: Twitter Video Extractor API
 
 on:
-  workflow_dispatch:  # يتيح تشغيل GitHub Actions عبر API
+  workflow_dispatch:
+    inputs:
+      tweet_url:
+        description: "Twitter Video URL"
+        required: true  # التأكد من أنه مطلوب
+        type: string
 
 jobs:
   download-video:
-    runs-on: ubuntu-latest  # تشغيل على Linux (مجاني)
-
+    runs-on: ubuntu-latest
+    
     steps:
       - name: 🛠️ تحميل المستودع
         uses: actions/checkout@v4
@@ -16,10 +21,12 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: 📦 تثبيت المكتبات المطلوبة
+      - name: 📦 تثبيت yt-dlp
         run: |
           python -m pip install --upgrade pip
-          pip install yt-dlp requests
+          pip install yt-dlp
 
       - name: 🎥 تشغيل كود استخراج رابط الفيديو
         run: python twitter_video.py
+        env:
+          TWEET_URL: ${{ github.event.inputs.tweet_url }}  # تمرير رابط التغريدة إلى الكود
