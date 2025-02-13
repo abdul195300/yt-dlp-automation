@@ -1,56 +1,51 @@
-import yt_dlp
 import requests
 import os
+import yt_dlp
 
-# استلام رابط التغريدة من GitHub Actions
-tweet_url = os.getenv("TWEET_URL")
-
-if not tweet_url:
-    print("❌ لم يتم توفير رابط التغريدة.")
-    exit(1)
-
-def extract_video_url(url):
-    """ استخراج رابط الفيديو المباشر من تغريدة تويتر """
+def extract_video_url(tweet_url):
+    """استخراج رابط الفيديو بدون تحميله باستخدام yt-dlp"""
     ydl_opts = {
         'quiet': True,
-        'skip_download': True,
-        'force_generic_extractor': False
+        'simulate': True,  # لا تقم بالتحميل، فقط استخرج المعلومات
+        'format': 'best',
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            formats = info.get('formats', [])
-
-            # البحث عن أفضل جودة فيديو متاحة
-            video_url = next((f['url'] for f in formats if f['ext'] == 'mp4'), None)
-
-            if video_url:
-                return video_url
+            info = ydl.extract_info(tweet_url, download=False)
+            if 'entries' in info:
+                video_info = info['entries'][0]  # أول فيديو في القائمة
+            else:
+                video_info = info
+            
+            if 'url' in video_info:
+                return video_info['url']
             else:
                 return None
-
-    except Exception as e:
-        print(f"⚠️ خطأ أثناء استخراج الفيديو: {str(e)}")
+    except yt_dlp.utils.DownloadError:
         return None
+
+# استلام رابط التغريدة من GitHub Actions
+tweet_url = os.getenv("TWEET_URL")
 
 # استخراج رابط الفيديو
 video_url = extract_video_url(tweet_url)
 
+# رابط الـ Webhook في Make.com
+MAKE_WEBHOOK_URL = "https://hook.us1.make.com/xxxxxxx"  # استبدل هذا بـ رابط Webhook الفعلي في Make.com
+
 if video_url:
-    print(f"🎥 رابط الفيديو المباشر: {video_url}")
-
-    # 🔹 إرسال الرابط إلى Make.com
-    MAKE_WEBHOOK_URL = "https://hook.us1.make.com/xxxxxxx"  # استبدل بـ رابط Webhook الفعلي
-    payload = {"tweet_url": tweet_url, "video_url": video_url}
+    payload = {
+        "tweet_url": tweet_url,
+        "video_url": video_url
+    }
     headers = {"Content-Type": "application/json"}
-
+    
     response = requests.post(MAKE_WEBHOOK_URL, json=payload, headers=headers)
 
     if response.status_code == 200:
         print("✅ تم إرسال الرابط بنجاح إلى Make.com!")
     else:
         print(f"❌ فشل الإرسال! كود الخطأ: {response.status_code}")
-
 else:
     print("❌ الرابط لا يحتوي على فيديو.")
