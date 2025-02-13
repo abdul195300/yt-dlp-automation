@@ -1,13 +1,8 @@
 import yt_dlp
 import os
-import json
 
-# قراءة البيانات الواردة من GitHub Actions
-event_path = os.getenv("GITHUB_EVENT_PATH")  # استلام البيانات من GitHub
-if event_path and os.path.exists(event_path):
-    with open(event_path, "r") as event_file:
-        event_payload = json.load(event_file)
-        tweet_url = event_payload.get("inputs", {}).get("tweet_url", "")
+# الحصول على رابط التغريدة من متغيرات البيئة
+tweet_url = os.getenv("TWEET_URL", "").strip()
 
 if not tweet_url:
     print("❌ لم يتم استلام رابط التغريدة بشكل صحيح!")
