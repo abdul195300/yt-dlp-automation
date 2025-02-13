@@ -1,35 +1,36 @@
 import yt_dlp
+import sys
+import json
+import requests
 
-def download_twitter_video(url):
-    """تحميل الفيديو من تويتر باستخدام yt-dlp مع التحقق مما إذا كان الرابط يحتوي على فيديو."""
+WEBHOOK_URL = "https://your-server.com/api/github-result"  # ضع API لاستقبال النتيجة
 
-    ydl_opts = {
-        'outtmpl': '%(title)s.%(ext)s',
-        'format': 'bestvideo+bestaudio/best',
-    }
+def check_twitter_video(url):
+    ydl_opts = {'format': 'bestvideo+bestaudio/best', 'quiet': True}
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)  # نحصل على معلومات الرابط بدون تحميل
+            info = ydl.extract_info(url, download=False)
 
-            # التحقق مما إذا كان الرابط يحتوي على فيديو
             if 'entries' in info:
-                # في حالة وجود قائمة تشغيل أو منشور يحتوي على وسائط متعددة
-                video_info = info['entries'][0]  # نحصل على أول عنصر في القائمة
+                video_info = info['entries'][0]
             else:
                 video_info = info
 
             if 'formats' not in video_info or not video_info['formats']:
-                print("❌ الرابط لا يحتوي على فيديو.")
-                return
+                result = {"tweet_url": url, "video_url": "❌ الرابط لا يحتوي على فيديو."}
+            else:
+                result = {"tweet_url": url, "video_url": video_info['url']}
 
-            # تحميل الفيديو إذا كان متاحًا
-            ydl.download([url])
-            print("✅ تم تحميل الفيديو بنجاح.")
+            # إرسال النتيجة إلى API
+            requests.post(WEBHOOK_URL, json=result)
+            print(json.dumps(result))  # طباعة النتيجة
 
     except yt_dlp.utils.DownloadError:
-        print("❌ الرابط لا يحتوي على فيديو.")
+        result = {"tweet_url": url, "video_url": "❌ الرابط لا يحتوي على فيديو."}
+        requests.post(WEBHOOK_URL, json=result)
+        print(json.dumps(result))
 
-# تجربة الكود برابط من تويتر
-twitter_video_url = "https://x.com/NewsNow4USA/status/1889252022869782792"  # استبدل بالرابط الذي تريد اختباره
-download_twitter_video(twitter_video_url)
+if __name__ == "__main__":
+    tweet_url = sys.argv[1]
+    check_twitter_video(tweet_url)
