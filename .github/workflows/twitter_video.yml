@@ -28,7 +28,9 @@ jobs:
       - name: 🎥 تشغيل كود استخراج رابط الفيديو
         env:
           TWEET_URL: ${{ github.event.inputs.tweet_url }}
-        run: python twitter_video.py
+        run: |
+          VIDEO_URL=$(python twitter_video.py)
+          echo "VIDEO_URL=$VIDEO_URL" >> $GITHUB_ENV
 
       - name: 📡 إرسال الرابط إلى Webhook
         run: |
