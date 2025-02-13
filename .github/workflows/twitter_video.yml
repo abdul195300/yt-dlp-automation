@@ -1,0 +1,30 @@
+name: Twitter Video Downloader
+
+on:
+  push:
+    branches:
+      - main  # سيعمل الكود عند تحديث فرع "main"
+  schedule:
+    - cron: "*/15 * * * *"  # تشغيل الكود كل 15 دقيقة
+  workflow_dispatch:  # زر تشغيل يدوي من GitHub Actions
+
+jobs:
+  download-video:
+    runs-on: ubuntu-latest  # استخدام Linux (مجاني بالكامل)
+    
+    steps:
+      - name: 🛠️ تحميل المستودع
+        uses: actions/checkout@v4
+
+      - name: 🐍 تثبيت Python والاعتماديات
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'  # يمكنك تغييره للإصدار المناسب
+
+      - name: 📦 تثبيت yt-dlp
+        run: |
+          python -m pip install --upgrade pip
+          pip install yt-dlp
+
+      - name: 🎥 تشغيل كود تحميل الفيديو
+        run: python twitter_video.py
