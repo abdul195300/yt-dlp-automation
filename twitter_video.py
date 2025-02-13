@@ -1,53 +1,43 @@
 import yt_dlp
-import requests
 import os
+import requests
 
-# رابط السيرفر المحلي في PyCharm (تأكد من تشغيل Flask في PyCharm)
-PYCHARM_SERVER_URL = "http://127.0.0.1:5000/receive_video"
-
-# استلام رابط التغريدة من GitHub Actions
+# 🔹 الحصول على رابط التغريدة من GitHub Actions
 tweet_url = os.getenv("TWEET_URL")
 
-def extract_twitter_video(url):
-    """ استخراج رابط الفيديو من تغريدة تويتر دون تحميل """
-    
-    ydl_opts = {
-        'quiet': True,
-        'noplaylist': True,  # عدم التعامل مع قوائم التشغيل
-        'extract_flat': True,  # استخراج الروابط فقط دون تحميل
-    }
+if not tweet_url:
+    print("❌ لم يتم توفير رابط التغريدة!")
+    exit(1)
 
-    try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+# 🔹 إعداد yt-dlp لاستخراج رابط الفيديو فقط
+ydl_opts = {
+    'quiet': True,
+    'no_warnings': True,
+    'extract_flat': True
+}
 
-            if 'entries' in info:
-                video_info = info['entries'][0]
-            else:
-                video_info = info
+try:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(tweet_url, download=False)
+        
+        if 'entries' in info:
+            video_info = info['entries'][0]
+        else:
+            video_info = info
 
-            if 'url' not in video_info:
-                print("❌ التغريدة لا تحتوي على فيديو.")
-                return None
-
+        if 'url' in video_info:
             video_url = video_info['url']
             print(f"🎥 رابط الفيديو المباشر: {video_url}")
-            return video_url
 
-    except yt_dlp.utils.DownloadError as e:
-        print(f"⚠️ خطأ أثناء استخراج الفيديو: {str(e)}")
-        return None
+            # 🔹 إرسال الرابط إلى PyCharm عبر Flask
+            response = requests.post("http://127.0.0.1:5000/receive_video", json={"video_url": video_url})
+            if response.status_code == 200:
+                print("✅ تم إرسال الرابط إلى PyCharm بنجاح!")
+            else:
+                print("⚠️ فشل إرسال الرابط إلى PyCharm!")
 
-# استخراج رابط الفيديو
-video_url = extract_twitter_video(tweet_url)
+        else:
+            print("❌ الرابط لا يحتوي على فيديو.")
 
-# إرسال الرابط إلى PyCharm
-if video_url:
-    data = {"video_url": video_url}
-    try:
-        response = requests.post(PYCHARM_SERVER_URL, json=data)
-        print(f"📩 تم إرسال الرابط إلى PyCharm بنجاح! ✅ (Status Code: {response.status_code})")
-    except Exception as e:
-        print(f"⚠️ فشل إرسال الرابط إلى PyCharm: {e}")
-else:
-    print("❌ لم يتم العثور على رابط فيديو.")
+except Exception as e:
+    print(f"⚠️ خطأ أثناء استخراج الرابط: {e}")
