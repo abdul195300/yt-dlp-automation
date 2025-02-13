@@ -3,13 +3,8 @@ import json
 import requests
 import os
 
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # رمز API الخاص بـ GitHub
-REPO_OWNER = "اسم_المستخدم_في_GitHub"
-REPO_NAME = "اسم_المستودع_في_GitHub"
-
 def get_twitter_video_url(url):
-    """استخراج رابط الفيديو المباشر من تويتر بدون تحميل."""
-
+    """استخراج رابط الفيديو المباشر بدون تحميله."""
     ydl_opts = {'quiet': True, 'socket_timeout': 10, 'noplaylist': True}
 
     try:
@@ -18,12 +13,12 @@ def get_twitter_video_url(url):
             video_info = info['entries'][0] if 'entries' in info else info
 
             if 'formats' not in video_info or not video_info['formats']:
-                return "❌ الرابط لا يحتوي على فيديو."
+                return {"status": "error", "message": "❌ الرابط لا يحتوي على فيديو."}
 
-            return f"✅ رابط الفيديو: {video_info['url']}"
+            return {"status": "success", "video_url": video_info['url']}
 
     except yt_dlp.utils.DownloadError:
-        return "❌ الرابط لا يحتوي على فيديو."
+        return {"status": "error", "message": "❌ الرابط لا يحتوي على فيديو."}
 
 # 🔹 جلب رابط التغريدة من Event Payload
 event_payload_path = os.getenv("GITHUB_EVENT_PATH")
@@ -33,13 +28,10 @@ with open(event_payload_path, "r") as f:
 
 result = get_twitter_video_url(tweet_url)
 
-# 🔹 إرسال النتيجة إلى PyCharm عبر GitHub API
-def send_result_to_pycharm(result):
-    response = requests.post(
-        f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues",
-        headers={"Authorization": f"token {GITHUB_TOKEN}"},
-        json={"title": "نتيجة تحليل التغريدة", "body": result}
-    )
-    print(response.json())
-
-send_result_to_pycharm(result)
+# 🔹 إرسال النتيجة إلى PyCharm عبر Webhook
+PYCHARM_WEBHOOK = os.getenv("PYCHARM_WEBHOOK")
+if PYCHARM_WEBHOOK:
+    response = requests.post(PYCHARM_WEBHOOK, json=result)
+    print(f"✅ تم إرسال النتيجة إلى PyCharm. حالة الإرسال: {response.status_code}")
+else:
+    print("⚠️ لم يتم تعيين Webhook لإرسال النتيجة.")
