@@ -29,3 +29,9 @@ jobs:
         env:
           TWEET_URL: ${{ github.event.inputs.tweet_url }}
         run: python twitter_video.py
+
+      - name: 📡 إرسال الرابط إلى Webhook
+        run: |
+          curl -X POST "https://hook.eu2.make.com/ijtimfp41bqh6upl2qnmvcqu6fyacizl" \
+          -H "Content-Type: application/json" \
+          -d '{"tweet_url": "${{ github.event.inputs.tweet_url }}", "video_url": "'"$VIDEO_URL"'"}'
