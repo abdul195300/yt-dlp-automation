@@ -1,17 +1,12 @@
 name: Twitter Video Downloader
 
 on:
-  push:
-    branches:
-      - main  # سيعمل الكود عند تحديث فرع "main"
-  schedule:
-    - cron: "*/15 * * * *"  # تشغيل الكود كل 15 دقيقة
-  workflow_dispatch:  # زر تشغيل يدوي من GitHub Actions
+  workflow_dispatch:  # هذا يسمح بتشغيل الـ Workflow عبر API
 
 jobs:
   download-video:
-    runs-on: ubuntu-latest  # استخدام Linux (مجاني بالكامل)
-    
+    runs-on: ubuntu-latest  # تشغيله على سيرفر GitHub
+
     steps:
       - name: 🛠️ تحميل المستودع
         uses: actions/checkout@v4
@@ -19,7 +14,7 @@ jobs:
       - name: 🐍 تثبيت Python والاعتماديات
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'  # يمكنك تغييره للإصدار المناسب
+          python-version: '3.9'
 
       - name: 📦 تثبيت yt-dlp
         run: |
