@@ -27,23 +27,30 @@ def get_latest_tweet():
     return None, None
 
 # 🛠 **2. استخراج رابط الفيديو من التغريدة**
-def extract_video_url(tweet_url):
+def extract_video_url(url):
+    """ استخراج رابط الفيديو المباشر من أي موقع مدعوم بواسطة yt-dlp """
     ydl_opts = {
         'quiet': True,
         'simulate': True,  # استخراج المعلومات بدون تحميل
         'format': 'best',
     }
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(tweet_url, download=False)
-            if 'entries' in info:
+            info = ydl.extract_info(url, download=False)
+            if 'entries' in info:  
                 video_info = info['entries'][0]  # أول فيديو في القائمة
             else:
                 video_info = info
-            return video_info.get("url")
-    except yt_dlp.utils.DownloadError:
-        return None
 
+            if 'url' in video_info:
+                return video_info['url']
+            else:
+                return None
+    except Exception as e:
+        print(f"⚠️ خطأ أثناء استخراج الفيديو: {str(e)}")
+        return None
+        
 # 🔄 **3. تحديث نفس السجل في Airtable برابط الفيديو**
 def update_airtable(record_id, video_url):
     update_url = f"{AIRTABLE_URL}/{record_id}"  # تحديد السجل المراد تحديثه
