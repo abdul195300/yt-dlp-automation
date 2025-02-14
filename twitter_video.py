@@ -17,22 +17,26 @@ logging.basicConfig(level=logging.INFO)
 # 📝 **1. جلب أحدث سجل يحتوي على رابط التغريدة**
 def get_latest_tweet():
     airtable_url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
-    headers = {"Authorization": f"Bearer {AIRTABLE_API_KEY}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Bearer {AIRTABLE_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
     response = requests.get(airtable_url, headers=headers)
-    
-    if response.status_code == 200:
-        records = response.json().get("records", [])
 
-        # ✅ طباعة البيانات المسترجعة من Airtable للتحقق مما يتم جلبه
-        print(f"📌 البيانات المسترجعة من Airtable:\n{records}")
+    if response.status_code == 200:
+        data = response.json()
+        records = data.get("records", [])
+
+        # ✅ طباعة كل البيانات المسترجعة لمعرفة محتويات Airtable
+        print(f"📌 البيانات المسترجعة من Airtable:\n{json.dumps(data, indent=2, ensure_ascii=False)}")
 
         if not records:
             logging.error("❌ لم يتم العثور على أي بيانات في Airtable!")
             return None, None
 
         for record in records:
-            if "tweet_url" in record["fields"]:
+            if "tweet_url" in record["fields"]:  # التحقق من اسم الحقل
                 logging.info(f"✅ تم العثور على `tweet_url`: {record['fields']['tweet_url']}")
                 return record["id"], record["fields"]["tweet_url"]
 
