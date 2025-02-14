@@ -76,14 +76,20 @@ def get_shared_link():
         "Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}",
         "Content-Type": "application/json"
     }
-    data = json.dumps({"path": DROPBOX_UPLOAD_PATH, "settings": {"requested_visibility": "public"}})
+    
+    # 🔹 طلب رابط المشاركة من Dropbox
+    data = json.dumps({"path": DROPBOX_UPLOAD_PATH})
     response = requests.post("https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings", headers=headers, data=data)
 
     if response.status_code == 200:
-        link = response.json()["url"]
-        direct_link = link.replace("?dl=0", "?raw=1")  # ✅ تحويل الرابط إلى رابط مباشر للفيديو
-        print(f"📌 رابط مباشر للفيديو: {direct_link}")
-        return direct_link
+        shared_link = response.json()["url"]
+        print(f"📌 رابط المشاركة من Dropbox: {shared_link}")
+
+        # ✅ تحويله إلى رابط تنزيل مباشر (التعديل هنا)
+        direct_download_link = shared_link.replace("?dl=0", "?dl=1")  # رابط تحميل مباشر
+        print(f"📌 رابط مباشر للفيديو: {direct_download_link}")
+        
+        return direct_download_link
     else:
         print(f"❌ فشل الحصول على رابط المشاركة! التفاصيل: {response.text}")
         return None
@@ -96,9 +102,9 @@ def update_airtable(record_id, video_url):
 
     update_url = f"{AIRTABLE_URL}/{record_id}"
     
-    # ✅ استخدم اسم الحقل الصحيح في Airtable
-    correct_field_name = "Video_File"  # تأكد من مطابقته لما هو في Airtable
-    
+    # ✅ تأكد من أن اسم الحقل مطابق للاسم الموجود في Airtable
+    correct_field_name = "Video_File"
+
     payload = {
         "fields": {
             correct_field_name: [{"url": video_url}]
