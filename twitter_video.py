@@ -2,14 +2,36 @@ import requests
 import os
 import yt_dlp
 
+# 🔹 إعدادات Airtable API
+AIRTABLE_API_KEY = "your_airtable_api_key"  # ضع مفتاح Airtable API هنا
+AIRTABLE_BASE_ID = "your_base_id"  # ضع معرف قاعدة البيانات (Base ID)
+AIRTABLE_TABLE_NAME = "your_table_name"  # ضع اسم الجدول
+
+# 🔹 رابط Airtable API لجلب البيانات
+AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
+
+# 🔹 ترويسة الطلبات (Authorization)
+HEADERS = {
+    "Authorization": f"Bearer {AIRTABLE_API_KEY}",
+    "Content-Type": "application/json"
+}
+
+# 📝 **1. جلب رابط التغريدة من Airtable**
+def get_latest_tweet():
+    response = requests.get(AIRTABLE_URL, headers=HEADERS)
+    if response.status_code == 200:
+        records = response.json().get("records", [])
+        if records:
+            return records[0]["id"], records[0]["fields"].get("Tweet_URL")
+    return None, None
+
+# 🛠 **2. استخراج رابط الفيديو من التغريدة**
 def extract_video_url(tweet_url):
-    """استخراج رابط الفيديو بدون تحميله باستخدام yt-dlp"""
     ydl_opts = {
         'quiet': True,
-        'simulate': True,  # لا تقم بالتحميل، فقط استخرج المعلومات
+        'simulate': True,  # استخراج المعلومات بدون تحميل
         'format': 'best',
     }
-
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(tweet_url, download=False)
@@ -17,35 +39,24 @@ def extract_video_url(tweet_url):
                 video_info = info['entries'][0]  # أول فيديو في القائمة
             else:
                 video_info = info
-            
-            if 'url' in video_info:
-                return video_info['url']
-            else:
-                return None
+            return video_info.get("url")
     except yt_dlp.utils.DownloadError:
         return None
 
-# استلام رابط التغريدة من GitHub Actions
-tweet_url = os.getenv("TWEET_URL")
+# 🔄 **3. تحديث Airtable برابط الفيديو**
+def update_airtable(record_id, video_url):
+    update_url = f"{AIRTABLE_URL}/{record_id}"
+    payload = {"fields": {"Video_URL": video_url if video_url else "❌ الرابط لا يحتوي على فيديو."}}
+    response = requests.patch(update_url, json=payload, headers=HEADERS)
+    return response.status_code == 200
 
-# استخراج رابط الفيديو
-video_url = extract_video_url(tweet_url)
-
-# رابط الـ Webhook في Make.com
-MAKE_WEBHOOK_URL = "https://hook.eu2.make.com/ijtimfp41bqh6upl2qnmvcqu6fyacizl"  # استبدل هذا بـ رابط Webhook الفعلي في Make.com
-
-if video_url:
-    payload = {
-        "tweet_url": tweet_url,
-        "video_url": video_url
-    }
-    headers = {"Content-Type": "application/json"}
-    
-    response = requests.post(MAKE_WEBHOOK_URL, json=payload, headers=headers)
-
-    if response.status_code == 200:
-        print("✅ تم إرسال الرابط بنجاح إلى Make.com!")
+# 🚀 **تشغيل الوظيفة**
+record_id, tweet_url = get_latest_tweet()
+if tweet_url:
+    video_url = extract_video_url(tweet_url)
+    if update_airtable(record_id, video_url):
+        print(f"✅ تم تحديث Airtable برابط الفيديو: {video_url}")
     else:
-        print(f"❌ فشل الإرسال! كود الخطأ: {response.status_code}")
+        print("❌ فشل تحديث Airtable!")
 else:
-    print("❌ الرابط لا يحتوي على فيديو.")
+    print("❌ لم يتم العثور على تغريدة جديدة!")
