@@ -23,10 +23,12 @@ def get_latest_tweet():
     response = requests.get(airtable_url, headers=headers)
     if response.status_code == 200:
         records = response.json().get("records", [])
+        print(f"📌 البيانات المسترجعة من Airtable: {records}")  # ✅ طباعة البيانات لمعرفة ما يتم جلبه
         for record in records:
-            if "tweet_url" in record["fields"]:  # التأكد من وجود رابط التغريدة في السجل
+            if "tweet_url" in record["fields"]:  # ✅ التأكد من أن `tweet_url` موجود
                 return record["id"], record["fields"]["tweet_url"]
-    logging.error("❌ لم يتم العثور على سجل يحتوي على رابط تغريدة في Airtable!")
+    
+    logging.error("❌ لم يتم العثور على أي سجل يحتوي على رابط تغريدة في Airtable!")
     return None, None
 
 # 🛠 **2. تحميل الفيديو من التغريدة باستخدام `yt-dlp`**
