@@ -11,7 +11,7 @@ DROPBOX_ACCESS_TOKEN = os.getenv("sl.u.AFiZSncnGgFKMVoCCzIPPCLQG8P27yrp4hlP_4e5f
 AIRTABLE_BASE_ID = os.getenv("app2j2xblYodCdMZQ")
 AIRTABLE_TABLE_NAME = "Table2"  # اسم الجدول في Airtable
 DOWNLOAD_PATH = "downloaded_video.mp4"  # اسم الملف الذي سيتم حفظ الفيديو فيه
-ل
+
 logging.basicConfig(level=logging.INFO)
 
 # 📝 **1. جلب أحدث سجل يحتوي على رابط التغريدة**
