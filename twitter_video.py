@@ -1,11 +1,14 @@
+import yt_dlp
 import requests
 import os
-import yt_dlp
 
-# 🔹 إعدادات Airtable API
-AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"  # ضع مفتاح Airtable API هنا
-AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"  # ضع معرف قاعدة البيانات (Base ID)
-AIRTABLE_TABLE_NAME = "Table2"  # ضع اسم الجدول
+# 🟢 إعدادات Airtable
+AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"  # استبدل بمفتاح Airtable API
+AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"  # استبدل بـ Base ID
+AIRTABLE_TABLE_NAME = "Table2"  # اسم الجدول في Airtable
+
+# 🔹 رابط Airtable API لتحديث البيانات
+AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
 
 HEADERS = {
     "Authorization": f"Bearer {AIRTABLE_API_KEY}",
@@ -64,7 +67,7 @@ if video_url:
     if response.status_code == 200:
         print("✅ تم تحديث Airtable برابط الفيديو!")
     else:
-        print(f"❌ فشل تحديث Airtable! كود الخطأ: {response.status_code}")
+        print(f"❌ فشل تحديث Airtable! كود الخطأ: {response.status_code}, التفاصيل: {response.text}")
 
 else:
     print("❌ لم يتم العثور على فيديو في التغريدة.")
