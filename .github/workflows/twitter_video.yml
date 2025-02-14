@@ -1,14 +1,12 @@
 name: Twitter Video Extractor API
 
 on:
-  workflow_dispatch:
-    inputs:
-      tweet_url:
-        description: "رابط التغريدة"
-        required: true
+  schedule:
+    - cron: '*/15 * * * *'  # تشغيل الكود كل 15 دقيقة
+  workflow_dispatch:  # إمكانية تشغيله يدويًا
 
 jobs:
-  download-video:
+  extract-video:
     runs-on: ubuntu-latest
     
     steps:
@@ -25,15 +23,5 @@ jobs:
           python -m pip install --upgrade pip
           pip install yt-dlp requests
 
-      - name: 🎥 تشغيل كود استخراج رابط الفيديو
-        env:
-          TWEET_URL: ${{ github.event.inputs.tweet_url }}
-        run: |
-          VIDEO_URL=$(python twitter_video.py)
-          echo "VIDEO_URL=$VIDEO_URL" >> $GITHUB_ENV
-
-      - name: 📡 إرسال الرابط إلى Webhook
-        run: |
-          curl -X POST "https://hook.eu2.make.com/ijtimfp41bqh6upl2qnmvcqu6fyacizl" \
-          -H "Content-Type: application/json" \
-          -d '{"tweet_url": "${{ github.event.inputs.tweet_url }}", "video_url": "'"$VIDEO_URL"'"}'
+      - name: 🎥 تشغيل كود استخراج الفيديو وتحديث Airtable
+        run: python twitter_video.py
