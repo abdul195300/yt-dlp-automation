@@ -6,9 +6,8 @@ import requests
 AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"  # استبدل بـ API Key
 AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"  # استبدل بـ Base ID
 AIRTABLE_TABLE_NAME = "Table2"  # استبدل بـ اسم الجدول
-DOWNLOAD_PATH = "downloaded_video.mp4"  # اسم الملف بعد التنزيل
 
-# 🔹 رابط Airtable API
+# 🔹 رابط Airtable API لجلب البيانات
 AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
 
 # 🔹 ترويسة الطلبات (Authorization)
@@ -27,58 +26,42 @@ def get_latest_tweet():
                 return record["id"], record["fields"]["tweet_url"]
     return None, None
 
-# 🛠 **2. تحميل الفيديو من التغريدة**
-def download_video(tweet_url):
+# 🛠 **2. استخراج رابط الفيديو من التغريدة**
+def extract_video_url(tweet_url):
     ydl_opts = {
         'quiet': True,
-        'outtmpl': DOWNLOAD_PATH,  # حفظ الفيديو بنفس الاسم
-        'format': 'best[ext=mp4]',  # اختيار أفضل جودة بصيغة MP4
+        'simulate': True,  # استخراج المعلومات بدون تحميل
+        'format': 'best',
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([tweet_url])
-        return DOWNLOAD_PATH
-    except yt_dlp.utils.DownloadError as e:
-        print(f"❌ خطأ في تحميل الفيديو: {str(e)}")
+            info = ydl.extract_info(tweet_url, download=False)
+            if 'entries' in info:
+                video_info = info['entries'][0]  # أول فيديو في القائمة
+            else:
+                video_info = info
+            return video_info.get("url")
+    except yt_dlp.utils.DownloadError:
         return None
 
-# 🔄 **3. رفع الفيديو إلى Airtable كمرفق**
-def upload_video_to_airtable(record_id, video_path):
-    with open(video_path, 'rb') as file:
-        # 1️⃣ **طلب الحصول على رابط رفع من Airtable**
-        response = requests.post(
-            "https://api.airtable.com/v0/meta/files/upload",
-            headers={"Authorization": f"Bearer {AIRTABLE_API_KEY}"}
-        )
-        
-        if response.status_code == 200:
-            upload_url = response.json()["url"]
-            
-            # 2️⃣ **رفع الفيديو باستخدام الرابط الموقّع**
-            files = {'file': open(video_path, 'rb')}
-            upload_response = requests.put(upload_url, files=files)
-            
-            if upload_response.status_code == 200:
-                # 3️⃣ **تحديث سجل Airtable بالمرفق**
-                update_url = f"{AIRTABLE_URL}/{record_id}"
-                payload = {"fields": {"Video_File": [{"url": upload_url}]}}
-                update_response = requests.patch(update_url, json=payload, headers=HEADERS)
+# 🔄 **3. تحديث نفس السجل في Airtable برابط الفيديو**
+def update_airtable(record_id, video_url):
+    update_url = f"{AIRTABLE_URL}/{record_id}"  # تحديد السجل المراد تحديثه
+    payload = {"fields": {"Video_URL": video_url if video_url else "❌ الرابط لا يحتوي على فيديو."}}
+    response = requests.patch(update_url, json=payload, headers=HEADERS)
+    
+    if response.status_code == 200:
+        print(f"✅ تم تحديث السجل برابط الفيديو: {video_url}")
+    else:
+        print(f"❌ فشل تحديث Airtable! كود الخطأ: {response.status_code}, التفاصيل: {response.text}")
 
-                if update_response.status_code == 200:
-                    print(f"✅ تم رفع الفيديو وتحديث Airtable بنجاح!")
-                else:
-                    print(f"❌ فشل تحديث Airtable! التفاصيل: {update_response.text}")
-            else:
-                print(f"❌ فشل رفع الملف إلى Airtable! التفاصيل: {upload_response.text}")
-        else:
-            print(f"❌ فشل الحصول على URL رفع Airtable! التفاصيل: {response.text}")
-
-# 🚀 **4. تشغيل العملية بالكامل**
+# 🚀 **تشغيل العملية**
 record_id, tweet_url = get_latest_tweet()
 if record_id and tweet_url:
     print(f"🔗 رابط التغريدة: {tweet_url}")
-    video_file = download_video(tweet_url)
-    if video_file:
-        upload_video_to_airtable(record_id, video_file)
+    video_url = extract_video_url(tweet_url)
+    if video_url:
+        print(f"🎥 رابط الفيديو المباشر: {video_url}")
+    update_airtable(record_id, video_url)
 else:
     print("❌ لم يتم العثور على سجل يحتوي على رابط تغريدة في Airtable!")
