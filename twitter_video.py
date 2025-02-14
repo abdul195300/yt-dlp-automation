@@ -15,27 +15,18 @@ HEADERS = {
 }
 
 # 📝 **1. جلب رابط الفيديو من Airtable**
-def get_latest_video_link():
-    response = requests.get(AIRTABLE_URL, headers=HEADERS)
-    if response.status_code == 200:
-        records = response.json().get("records", [])
-        if records:
-            return records[0]["id"], records[0]["fields"].get("video_source_url")  # الحقل الذي يحتوي على الرابط
-    return None, None
-
-# 🛠 **2. استخراج رابط الفيديو من الموقع**
 def extract_video_url(url):
+    """ استخراج رابط الفيديو المباشر من أي موقع مدعوم بواسطة yt-dlp """
     ydl_opts = {
-        'quiet': False,  # اجعل الإخراج مرئيًا لحل المشاكل
-        'simulate': True,  # عدم تحميل الفيديو، فقط استخراج الرابط
+        'quiet': True,
+        'simulate': True,  # استخراج المعلومات بدون تحميل
         'format': 'best',
-        'cookies': 'cookies.txt'  # دعم ملفات الكوكيز إذا لزم الأمر
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-            if 'entries' in info:
+            if 'entries' in info:  
                 video_info = info['entries'][0]  # أول فيديو في القائمة
             else:
                 video_info = info
@@ -47,7 +38,7 @@ def extract_video_url(url):
     except Exception as e:
         print(f"⚠️ خطأ أثناء استخراج الفيديو: {str(e)}")
         return None
-
+        
 # 🔄 **3. تحديث Airtable برابط الفيديو**
 def update_airtable(record_id, video_url):
     update_url = f"{AIRTABLE_URL}/{record_id}"
