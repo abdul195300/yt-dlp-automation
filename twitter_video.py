@@ -1,12 +1,20 @@
-import requests
+import yt_dlp
 
-AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"
-AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"
-AIRTABLE_TABLE_NAME = "Table2"
+tweet_url = "https://x.com/Enezator/status/1888942584749084713"  # استبدل هذا برابط تغريدة تحتوي على فيديو
 
-AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
-HEADERS = {"Authorization": f"Bearer {AIRTABLE_API_KEY}"}
+ydl_opts = {
+    'quiet': False,  # جعل الإخراج مرئيًا لمساعدتنا في حل المشاكل
+    'simulate': True,  # عدم تحميل الفيديو، فقط استخراج الرابط
+    'format': 'best'
+}
 
-response = requests.get(AIRTABLE_URL, headers=HEADERS)
-print(response.status_code)
-print(response.json())  # طباعة البيانات لمعرفة ما يتم إرجاعه
+try:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(tweet_url, download=False)
+        if 'entries' in info:
+            video_info = info['entries'][0]  # أول فيديو في القائمة
+        else:
+            video_info = info
+        print("🎥 رابط الفيديو:", video_info.get("url"))
+except yt_dlp.utils.DownloadError as e:
+    print("❌ لم يتم العثور على فيديو! السبب:", e)
