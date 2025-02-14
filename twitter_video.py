@@ -3,9 +3,9 @@ import os
 import yt_dlp
 
 # 🔹 إعدادات Airtable API
-AIRTABLE_API_KEY = "your_airtable_api_key"  # ضع مفتاح Airtable API هنا
-AIRTABLE_BASE_ID = "your_base_id"  # ضع معرف قاعدة البيانات (Base ID)
-AIRTABLE_TABLE_NAME = "your_table_name"  # ضع اسم الجدول
+AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"  # ضع مفتاح Airtable API هنا
+AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"  # ضع معرف قاعدة البيانات (Base ID)
+AIRTABLE_TABLE_NAME = "Table2"  # ضع اسم الجدول
 
 # 🔹 رابط Airtable API لجلب البيانات
 AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
