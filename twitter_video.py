@@ -81,7 +81,7 @@ def get_shared_link():
 
     if response.status_code == 200:
         link = response.json()["url"]
-        direct_link = link.replace("?dl=0", "?raw=1")  # تحويل الرابط إلى رابط مباشر
+        direct_link = link.replace("?dl=0", "?raw=1")  # ✅ تحويل الرابط إلى رابط مباشر للفيديو
         print(f"📌 رابط مباشر للفيديو: {direct_link}")
         return direct_link
     else:
@@ -90,12 +90,24 @@ def get_shared_link():
 
 # 🔄 **5. تحديث سجل Airtable بالفيديو كمرفق**
 def update_airtable(record_id, video_url):
+    if not video_url or not video_url.startswith("http"):
+        print("❌ الرابط المستخرج غير صالح، لن يتم تحديث Airtable!")
+        return
+
     update_url = f"{AIRTABLE_URL}/{record_id}"
-    payload = {"fields": {"Video_File": [{"url": video_url}]}}  # إضافة الفيديو كمرفق
+    
+    # ✅ استخدم اسم الحقل الصحيح في Airtable
+    correct_field_name = "Video_File"  # تأكد من مطابقته لما هو في Airtable
+    
+    payload = {
+        "fields": {
+            correct_field_name: [{"url": video_url}]
+        }
+    }
 
     response = requests.patch(update_url, json=payload, headers=HEADERS)
     if response.status_code == 200:
-        print("✅ تم تحديث السجل برابط الفيديو المرفق!")
+        print("✅ تم تحديث السجل في Airtable بنجاح!")
     else:
         print(f"❌ فشل تحديث Airtable! كود الخطأ: {response.status_code}, التفاصيل: {response.text}")
 
