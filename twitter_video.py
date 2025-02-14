@@ -11,8 +11,7 @@ DROPBOX_ACCESS_TOKEN = os.getenv("sl.u.AFiZSncnGgFKMVoCCzIPPCLQG8P27yrp4hlP_4e5f
 AIRTABLE_BASE_ID = os.getenv("app2j2xblYodCdMZQ")
 AIRTABLE_TABLE_NAME = "Table2"  # اسم الجدول في Airtable
 DOWNLOAD_PATH = "downloaded_video.mp4"  # اسم الملف الذي سيتم حفظ الفيديو فيه
-
-# 🔹 إعدادات التسجيل
+ل
 logging.basicConfig(level=logging.INFO)
 
 # 📝 **1. جلب أحدث سجل يحتوي على رابط التغريدة**
@@ -21,13 +20,20 @@ def get_latest_tweet():
     headers = {"Authorization": f"Bearer {AIRTABLE_API_KEY}", "Content-Type": "application/json"}
 
     response = requests.get(airtable_url, headers=headers)
+    
     if response.status_code == 200:
         records = response.json().get("records", [])
-        print(f"📌 البيانات المسترجعة من Airtable: {records}")  # ✅ طباعة البيانات لمعرفة ما يتم جلبه
+
+        if not records:
+            logging.error("❌ لم يتم العثور على أي بيانات في Airtable!")
+            return None, None
+
+        print(f"📌 البيانات المسترجعة من Airtable: {records}")
+
         for record in records:
             if "tweet_url" in record["fields"]:  # ✅ التأكد من أن `tweet_url` موجود
                 return record["id"], record["fields"]["tweet_url"]
-    
+
     logging.error("❌ لم يتم العثور على أي سجل يحتوي على رابط تغريدة في Airtable!")
     return None, None
 
