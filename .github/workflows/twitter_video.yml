@@ -1,16 +1,16 @@
-name: Universal Video Extractor API
+name: Twitter Video Extractor API
 
 on:
   workflow_dispatch:
     inputs:
-      video_source_url:
-        description: "رابط المصدر (تويتر، فوكس نيوز، إلخ)"
+      tweet_url:
+        description: "رابط التغريدة"
         required: true
 
 jobs:
   extract-video:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 🛠️ تحميل المستودع
         uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install yt-dlp requests
 
-      - name: 🎥 تشغيل كود استخراج الفيديو وتحديث Airtable
+      - name: 🎥 تشغيل كود استخراج الفيديو وإرساله إلى Airtable
         env:
-          VIDEO_SOURCE_URL: ${{ github.event.inputs.video_source_url }}
+          TWEET_URL: ${{ github.event.inputs.tweet_url }}
         run: python twitter_video.py
