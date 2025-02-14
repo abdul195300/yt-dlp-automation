@@ -3,8 +3,8 @@ import os
 import requests
 
 # 🔹 إعدادات Airtable API
-AIRTABLE_API_KEY = "your_airtable_api_key"  # استبدل بـ API Key
-AIRTABLE_BASE_ID = "your_airtable_base_id"  # استبدل بـ Base ID
+AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"  # استبدل بـ API Key
+AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"  # استبدل بـ Base ID
 AIRTABLE_TABLE_NAME = "Table2"  # استبدل بـ اسم الجدول
 DOWNLOAD_PATH = "downloaded_video.mp4"  # اسم الملف بعد التنزيل
 
