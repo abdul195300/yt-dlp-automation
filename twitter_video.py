@@ -7,56 +7,64 @@ AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89a
 AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"  # ضع معرف قاعدة البيانات (Base ID)
 AIRTABLE_TABLE_NAME = "Table2"  # ضع اسم الجدول
 
-# 🔹 رابط Airtable API لجلب البيانات
-AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
-
-# 🔹 ترويسة الطلبات (Authorization)
 HEADERS = {
     "Authorization": f"Bearer {AIRTABLE_API_KEY}",
     "Content-Type": "application/json"
 }
 
-# 📝 **1. جلب رابط التغريدة من Airtable**
-def get_latest_tweet():
-    response = requests.get(AIRTABLE_URL, headers=HEADERS)
-    if response.status_code == 200:
-        records = response.json().get("records", [])
-        if records:
-            return records[0]["id"], records[0]["fields"].get("tweet_url")
-    return None, None
+# 🟢 استلام رابط التغريدة من GitHub Actions
+tweet_url = os.getenv("TWEET_URL")
 
-# 🛠 **2. استخراج رابط الفيديو من التغريدة**
-def extract_video_url(tweet_url):
+if not tweet_url:
+    print("❌ لم يتم توفير رابط التغريدة.")
+    exit(1)
+
+# 🟢 استخراج رابط الفيديو من التغريدة
+def extract_video_url(url):
+    """ استخراج رابط الفيديو المباشر من تويتر """
     ydl_opts = {
         'quiet': True,
-        'simulate': True,  # استخراج المعلومات بدون تحميل
-        'format': 'best',
+        'skip_download': True,
+        'force_generic_extractor': False
     }
+
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(tweet_url, download=False)
-            if 'entries' in info:
-                video_info = info['entries'][0]  # أول فيديو في القائمة
+            info = ydl.extract_info(url, download=False)
+            formats = info.get('formats', [])
+
+            # البحث عن أفضل جودة فيديو متاحة
+            video_url = next((f['url'] for f in formats if f['ext'] == 'mp4'), None)
+
+            if video_url:
+                return video_url
             else:
-                video_info = info
-            return video_info.get("url")
-    except yt_dlp.utils.DownloadError:
+                return None
+
+    except Exception as e:
+        print(f"⚠️ خطأ أثناء استخراج الفيديو: {str(e)}")
         return None
 
-# 🔄 **3. تحديث Airtable برابط الفيديو**
-def update_airtable(record_id, video_url):
-    update_url = f"{AIRTABLE_URL}/{record_id}"
-    payload = {"fields": {"Video_URL": video_url if video_url else "❌ الرابط لا يحتوي على فيديو."}}
-    response = requests.patch(update_url, json=payload, headers=HEADERS)
-    return response.status_code == 200
+# 🟢 استخراج رابط الفيديو
+video_url = extract_video_url(tweet_url)
 
-# 🚀 **تشغيل الوظيفة**
-record_id, tweet_url = get_latest_tweet()
-if tweet_url:
-    video_url = extract_video_url(tweet_url)
-    if update_airtable(record_id, video_url):
-        print(f"✅ تم تحديث Airtable برابط الفيديو: {video_url}")
+if video_url:
+    print(f"🎥 رابط الفيديو المباشر: {video_url}")
+
+    # تحديث Airtable برابط الفيديو
+    payload = {
+        "fields": {
+            "tweet_url": tweet_url,
+            "Video_URL": video_url
+        }
+    }
+
+    response = requests.post(AIRTABLE_URL, json=payload, headers=HEADERS)
+
+    if response.status_code == 200:
+        print("✅ تم تحديث Airtable برابط الفيديو!")
     else:
-        print("❌ فشل تحديث Airtable!")
+        print(f"❌ فشل تحديث Airtable! كود الخطأ: {response.status_code}")
+
 else:
-    print("❌ لم يتم العثور على تغريدة جديدة!")
+    print("❌ لم يتم العثور على فيديو في التغريدة.")
