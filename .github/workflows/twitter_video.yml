@@ -1,9 +1,11 @@
 name: Twitter Video Extractor API
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'  # تشغيل الكود كل 15 دقيقة
-  workflow_dispatch:  # إمكانية تشغيله يدويًا
+  workflow_dispatch:  # تشغيل يدوي عبر API أو GitHub UI
+    inputs:
+      tweet_url:
+        description: "رابط التغريدة"
+        required: true
 
 jobs:
   extract-video:
@@ -23,5 +25,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install yt-dlp requests
 
-      - name: 🎥 تشغيل كود استخراج الفيديو وتحديث Airtable
+      - name: 🎥 تشغيل كود استخراج الفيديو وإرساله إلى Make.com
+        env:
+          TWEET_URL: ${{ github.event.inputs.tweet_url }}
         run: python twitter_video.py
