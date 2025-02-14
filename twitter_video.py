@@ -22,7 +22,7 @@ def get_latest_tweet():
     if response.status_code == 200:
         records = response.json().get("records", [])
         if records:
-            return records[0]["id"], records[0]["fields"].get("Tweet_URL")
+            return records[0]["id"], records[0]["fields"].get("tweet_url")
     return None, None
 
 # 🛠 **2. استخراج رابط الفيديو من التغريدة**
