@@ -24,19 +24,21 @@ def get_latest_tweet():
     if response.status_code == 200:
         records = response.json().get("records", [])
 
+        # ✅ طباعة البيانات المسترجعة من Airtable للتحقق مما يتم جلبه
+        print(f"📌 البيانات المسترجعة من Airtable:\n{records}")
+
         if not records:
             logging.error("❌ لم يتم العثور على أي بيانات في Airtable!")
             return None, None
 
-        print(f"📌 البيانات المسترجعة من Airtable: {records}")
-
         for record in records:
-            if "tweet_url" in record["fields"]:  # ✅ التأكد من أن `tweet_url` موجود
+            if "tweet_url" in record["fields"]:
+                logging.info(f"✅ تم العثور على `tweet_url`: {record['fields']['tweet_url']}")
                 return record["id"], record["fields"]["tweet_url"]
 
-    logging.error("❌ لم يتم العثور على أي سجل يحتوي على رابط تغريدة في Airtable!")
+    logging.error("❌ لم يتم العثور على أي سجل يحتوي على `tweet_url` في Airtable!")
     return None, None
-
+    
 # 🛠 **2. تحميل الفيديو من التغريدة باستخدام `yt-dlp`**
 def download_video(tweet_url):
     ydl_opts = {
