@@ -1,7 +1,7 @@
 name: Twitter Video Extractor API
 
 on:
-  workflow_dispatch:  # تشغيل يدوي عبر API أو GitHub UI
+  workflow_dispatch:
     inputs:
       tweet_url:
         description: "رابط التغريدة"
@@ -10,7 +10,7 @@ on:
 jobs:
   extract-video:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: 🛠️ تحميل المستودع
         uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install yt-dlp requests
 
-      - name: 🎥 تشغيل كود استخراج الفيديو وإرساله إلى Make.com
+      - name: 🎥 تشغيل كود استخراج الفيديو وإرساله إلى Airtable
         env:
           TWEET_URL: ${{ github.event.inputs.tweet_url }}
         run: python twitter_video.py
