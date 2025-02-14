@@ -4,6 +4,7 @@ import yt_dlp
 import logging
 import re
 from tenacity import retry, stop_after_attempt, wait_fixed
+import json
 
 # 🔹 إعدادات من متغيرات البيئة
 AIRTABLE_API_KEY = os.getenv("patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa")  # تأكد من أن مفتاح API صحيح
@@ -15,33 +16,29 @@ DOWNLOAD_PATH = "downloaded_video.mp4"  # اسم الملف الذي سيتم ح
 logging.basicConfig(level=logging.INFO)
 
 # 📝 **1. جلب أحدث سجل يحتوي على رابط التغريدة**
-def get_latest_tweet():
-    airtable_url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
-    headers = {
-        "Authorization": f"Bearer {AIRTABLE_API_KEY}",
-        "Content-Type": "application/json"
-    }
 
-    response = requests.get(airtable_url, headers=headers)
+
+def get_latest_tweet():
+    response = requests.get(AIRTABLE_URL, headers=HEADERS)
 
     if response.status_code == 200:
         data = response.json()
+        print(f"📌 البيانات المسترجعة من Airtable:\n{json.dumps(data, indent=2, ensure_ascii=False)}")  # طباعة البيانات المسترجعة
+
         records = data.get("records", [])
-
-        # ✅ طباعة كل البيانات المسترجعة لمعرفة محتويات Airtable
-        print(f"📌 البيانات المسترجعة من Airtable:\n{json.dumps(data, indent=2, ensure_ascii=False)}")
-
         if not records:
             logging.error("❌ لم يتم العثور على أي بيانات في Airtable!")
             return None, None
 
         for record in records:
-            if "tweet_url" in record["fields"]:  # التحقق من اسم الحقل
+            print(f"🔹 السجل المسترجع: {record}")  # طباعة كل سجل للتحقق
+            if "tweet_url" in record["fields"]:
                 logging.info(f"✅ تم العثور على `tweet_url`: {record['fields']['tweet_url']}")
                 return record["id"], record["fields"]["tweet_url"]
 
     logging.error("❌ لم يتم العثور على أي سجل يحتوي على `tweet_url` في Airtable!")
     return None, None
+    
     
 # 🛠 **2. تحميل الفيديو من التغريدة باستخدام `yt-dlp`**
 def download_video(tweet_url):
