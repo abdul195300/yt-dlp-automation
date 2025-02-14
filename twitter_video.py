@@ -76,7 +76,7 @@ def get_shared_link():
         "Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}",
         "Content-Type": "application/json"
     }
-    
+
     # 🔹 طلب رابط المشاركة من Dropbox
     data = json.dumps({"path": DROPBOX_UPLOAD_PATH})
     response = requests.post("https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings", headers=headers, data=data)
@@ -85,24 +85,24 @@ def get_shared_link():
         shared_link = response.json()["url"]
         print(f"📌 رابط المشاركة من Dropbox: {shared_link}")
 
-        # ✅ تحويله إلى رابط تنزيل مباشر (التعديل هنا)
-        direct_download_link = shared_link.replace("?dl=0", "?dl=1")  # رابط تحميل مباشر
-        print(f"📌 رابط مباشر للفيديو: {direct_download_link}")
-        
+        # ✅ تحويل رابط Dropbox إلى رابط تنزيل مباشر:
+        direct_download_link = shared_link.replace("www.dropbox.com", "dl.dropboxusercontent.com").replace("?dl=0", "")
+        print(f"📌 رابط التحميل المباشر للفيديو: {direct_download_link}")
+
         return direct_download_link
     else:
         print(f"❌ فشل الحصول على رابط المشاركة! التفاصيل: {response.text}")
         return None
-
-# 🔄 **5. تحديث سجل Airtable بالفيديو كمرفق**
-def update_airtable(record_id, video_url):
+        
+    # 🔄 **5. تحديث سجل Airtable بالفيديو كمرفق**
+    def update_airtable(record_id, video_url):
     if not video_url or not video_url.startswith("http"):
         print("❌ الرابط المستخرج غير صالح، لن يتم تحديث Airtable!")
         return
 
     update_url = f"{AIRTABLE_URL}/{record_id}"
     
-    # ✅ تأكد من أن اسم الحقل مطابق للاسم الموجود في Airtable
+    # ✅ استخدم اسم الحقل الصحيح في Airtable
     correct_field_name = "Video_File"
 
     payload = {
