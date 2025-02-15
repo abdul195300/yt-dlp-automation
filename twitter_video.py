@@ -1,97 +1,85 @@
 import os
 import requests
-import yt_dlp
-import logging
-import re
-from tenacity import retry, stop_after_attempt, wait_fixed
-import json
+import subprocess
 
-# 🔐 بيانات الوصول
-AIRTABLE_URL = "https://api.airtable.com/v0/YOUR_BASE_ID/YOUR_TABLE_NAME"
+# 🛠 إعداد متغيرات API
 AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"
+AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"
+AIRTABLE_TABLE_NAME = "Table2"  # تأكد من أن اسم الجدول صحيح
 DROPBOX_ACCESS_TOKEN = "sl.u.AFiZSncnGgFKMVoCCzIPPCLQG8P27yrp4hlP_4e5fAbR3Q0jsX0xmEd8iBYbq9-ijIIRWKDSBSJl8K8izE2qiuH_-8217aycdf5bN5iXC9DBPmIPYUDVjy_fOf8njK7oZJ1GOhDZu7_EOIQ32DgAfFPZ_z-dDJJQQ_TqKlYR8xv29Fqbh5AxxbDvP2ioi7YPGWjBOLLHdn3sDAGQOXOzPFu685ZPn_5h_vw4hpcSuEMSFy2JdOhLs6XA9xrq1JTjwJLwpmfXiE3L-a-rcXwVsj6817bZC8DQStcOJx_86jN67agVQo7loebGqWmHqrEkKX-828RPYFrt1DTNN6JnjII0lvQOUXuMvYLQyC0X1QbKk0U_ylf6wsjsmOAwZWOn_hyeADXvZpk9iVRfkkTPjy02PvTTqFf_iioZWN-TKQTD1Pj4q7ZVBDATIk11ooQ_tjb_8kubrjoEIWYTcOqJd5I7KhMr-ht55N9A5f3C35czYXeRUtD7EFhDH6owavBYIlEnGS_PQIdixv4cMTz06qoV11Dop2xlV52FJFJxfZB2k-osW0Ag-tXLOQZCV1422QV5SHJGFBs1_qGZC5-YJvb5PxDYI5AFtMLgV8qyLS8WMvnLpGrzp868E88V2j6kubTegW-MewC2_XxlvA6y9cCUjPsUkkaHi0TxpuXMTMiwsX3B24fZ_NV9o3kAv5CX8iEq4OmM_CcMnM3ycVEdXRO_8XHSplFUVBr2smHpqlw2LZ5JyWsuXsfgynp0LDUbb1xB1LFRV82nyVIEYqBE0pPCiZlkT0f6GRFUiTfSaopnpbrM_KmjlUJlce9ZwcjvcdmziAyYQDkGTN4JtXONfJI3P7CmoWYqJoItQCR5PSe480Se--dayPt0wEIr1hHwdd-Ai7IeMMCb-p9nD3eKcKDGith7CtcUxfjmc_ae6vmQxmQM_2zmcvgzY20lzogWWPuzPQ7GnjwhXTDEcbz3OBqCCFrEPns1Ul3VCrk9CIrLrGYVjtJ6th2oyHHEZ66e5Aq6x26d54PpJaYE3LZK_vhWo4e1jBOCg3nA9TQJqGomqA37zh9NhKPjVFHk-7yXkdRy3l_0QOsX918SutYTWlLJShfi7YhI4hZUkVco0HsdVEjESD3nJmej7s0Yb3oqd-dOyERXIJI_jOAcfcBACHfa77OZcKskkVRUy-RHPjnbDLxuRRLgSLxXWWmgHDodNdsP2PiFL2FSmWxzZtuT7_AZ6fMjMIPb5ZFed81BjNm5pE2KKTOxikVfAKNUlKR5S7c"  # مفتاح Dropbox
-AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"  # استبدل بمعرف الـ Base من Airtable
-AIRTABLE_TABLE_NAME = "Table2"  # اسم الجدول في Airtable
 
-HEADERS = {
-    "Authorization": f"Bearer {AIRTABLE_API_KEY}",
-    "Content-Type": "application/json"
-}
+# 🔍 استرجاع آخر تغريدة من Airtable
+AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
+HEADERS = {"Authorization": f"Bearer {AIRTABLE_API_KEY}"}
 
-# 📥 تحميل الفيديو من تويتر
-TWEET_URL = "https://x.com/mfu46/status/1890264190021243175"
-video_filename = "twitter_video.mp4"
+response = requests.get(AIRTABLE_URL, headers=HEADERS)
+data = response.json()
 
-# تأكد أن الملف موجود
-if not os.path.exists(video_filename):
-    print(f"❌ الملف {video_filename} غير موجود. تأكد من تحميل الفيديو أولاً!")
-    exit(1)
-
-# ✅ **رفع الملف إلى Dropbox**
-def upload_to_dropbox(local_file):
-    dropbox_path = f"/{local_file}"
-    with open(local_file, "rb") as f:
-        response = requests.post(
-            "https://content.dropboxapi.com/2/files/upload",
-            headers={
-                "Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}",
-                "Dropbox-API-Arg": json.dumps({
-                    "path": dropbox_path,
-                    "mode": "add",
-                    "autorename": True,
-                    "mute": False
-                }),
-                "Content-Type": "application/octet-stream"
-            },
-            data=f.read()
-        )
-
-    if response.status_code == 200:
-        shared_link = requests.post(
-            "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings",
-            headers={
-                "Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}",
-                "Content-Type": "application/json"
-            },
-            data=json.dumps({"path": dropbox_path})
-        )
-
-        if shared_link.status_code == 200:
-            url = shared_link.json()["url"].replace("?dl=0", "?dl=1")  # تحويله إلى رابط مباشر
-            print(f"✅ تم رفع الملف على Dropbox: {url}")
-            return url
-        else:
-            print(f"❌ خطأ في مشاركة رابط Dropbox: {shared_link.text}")
-            return None
-    else:
-        print(f"❌ خطأ في رفع الملف إلى Dropbox: {response.text}")
-        return None
-
-# 🖥️ **تحميل الفيديو إلى Dropbox والحصول على رابط مباشر**
-video_url = upload_to_dropbox(video_filename)
-
-if not video_url:
-    print("❌ فشل في رفع الفيديو. تأكد من صحة توكن Dropbox.")
-    exit(1)
-
-# 📤 **إرسال البيانات إلى Airtable**
-data = {
-    "records": [
-        {
-            "fields": {
-                "tweet_url": TWEET_URL,
-                "Video_File": [{"url": video_url}]
-            }
-        }
-    ]
-}
-
-print("📜 البيانات المرسلة إلى Airtable:")
-print(json.dumps(data, indent=4))
-
-response = requests.post(AIRTABLE_URL, json=data, headers=HEADERS)
-
-if response.status_code in [200, 201]:
-    print("✅ تم تحديث Airtable بنجاح!")
+# 📌 استخراج الرابط من Airtable
+if "records" in data and data["records"]:
+    latest_record = data["records"][0]  # أول سجل في القائمة
+    record_id = latest_record["id"]
+    tweet_url = latest_record["fields"].get("tweet_url", "")
 else:
-    print(f"❌ فشل تحديث Airtable: {response.text}")
+    print("❌ لم يتم العثور على بيانات في Airtable!")
+    exit(1)
+
+if not tweet_url:
+    print("❌ لم يتم العثور على رابط تغريدة في Airtable!")
+    exit(1)
+
+print(f"🔗 تم العثور على رابط التغريدة: {tweet_url}")
+
+# 📥 تحميل الفيديو من تويتر باستخدام yt-dlp
+video_filename = "twitter_video.mp4"
+try:
+    subprocess.run(
+        ["yt-dlp", "-f", "best", "-o", video_filename, tweet_url], check=True
+    )
+except subprocess.CalledProcessError:
+    print("❌ فشل تحميل الفيديو من تويتر!")
+    exit(1)
+
+print("✅ تم تحميل الفيديو بنجاح!")
+
+# 📤 رفع الفيديو إلى Dropbox
+DROPBOX_UPLOAD_PATH = f"/{video_filename}"
+DROPBOX_UPLOAD_URL = "https://content.dropboxapi.com/2/files/upload"
+
+with open(video_filename, "rb") as f:
+    headers = {
+        "Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}",
+        "Dropbox-API-Arg": f'{{"path": "{DROPBOX_UPLOAD_PATH}", "mode": "add", "autorename": true, "mute": false}}',
+        "Content-Type": "application/octet-stream",
+    }
+    upload_response = requests.post(DROPBOX_UPLOAD_URL, headers=headers, data=f)
+
+if upload_response.status_code == 200:
+    print("✅ تم رفع الفيديو إلى Dropbox!")
+else:
+    print("❌ فشل رفع الفيديو إلى Dropbox!", upload_response.text)
+    exit(1)
+
+# 🔗 استخراج رابط المشاركة من Dropbox
+DROPBOX_SHARED_LINK_URL = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
+link_data = {"path": DROPBOX_UPLOAD_PATH, "settings": {"requested_visibility": "public"}}
+headers = {"Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}", "Content-Type": "application/json"}
+
+link_response = requests.post(DROPBOX_SHARED_LINK_URL, headers=headers, json=link_data)
+
+if link_response.status_code == 200:
+    dropbox_link = link_response.json()["url"].replace("?dl=0", "?raw=1")
+    print(f"✅ رابط الفيديو على Dropbox: {dropbox_link}")
+else:
+    print("❌ فشل إنشاء رابط مشاركة من Dropbox!", link_response.text)
+    exit(1)
+
+# 📌 تحديث Airtable بحقل `Video_File`
+update_url = f"{AIRTABLE_URL}/{record_id}"
+update_data = {"fields": {"Video_File": dropbox_link}}
+update_response = requests.patch(update_url, headers=HEADERS, json=update_data)
+
+if update_response.status_code == 200:
+    print("✅ تم تحديث Airtable برابط الفيديو!")
+else:
+    print("❌ فشل تحديث Airtable!", update_response.text)
