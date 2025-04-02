@@ -34,11 +34,11 @@ elif submission.url.endswith(('.mp4', '.m3u8')) or "v.redd.it" in submission.url
 if not video_url:
     raise ValueError("لم يتم العثور على فيديو في المنشور!")
 
-# مجلد مؤقت للعمل
+# استخدام مجلد مؤقت
 with tempfile.TemporaryDirectory() as tmp_dir:
     final_video_file = os.path.join(tmp_dir, "reddit_video_with_audio.mp4")
 
-    # فك الكوكيز من secret
+    # فك الكوكيز من secret (إن وُجد)
     cookies_base64 = os.getenv("REDDIT_COOKIES_BASE64")
     cookies_path = None
     if cookies_base64:
@@ -51,8 +51,10 @@ with tempfile.TemporaryDirectory() as tmp_dir:
         'outtmpl': final_video_file,
         'format': 'bestvideo+bestaudio/best',
         'merge_output_format': 'mp4',
-        'cookiefile': cookies_path if cookies_path else None
     }
+
+    if cookies_path:
+        ydl_opts['cookiefile'] = cookies_path  # ✅ تمرير الكوكيز فقط إذا وُجدت
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -84,29 +86,30 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     file_id = file.get('id')
     print(f"✅ تم رفع الفيديو إلى Google Drive. ID: {file_id}")
 
-    # جعل الفيديو عامًا
+    # جعل الملف عامًا
     service.permissions().create(
         fileId=file_id,
         body={'role': 'reader', 'type': 'anyone'}
     ).execute()
 
-    # إنشاء رابط مباشر
+    # إنشاء الرابط المباشر
     direct_link = f"https://drive.google.com/uc?export=download&id={file_id}"
     print(f"🔗 الرابط المباشر للفيديو: {direct_link}")
 
-    # إعداد Airtable
+    # إرسال الرابط إلى Airtable
     airtable_api_key = os.getenv("AIRTABLE_API_KEY")
     airtable_base_id = os.getenv("AIRTABLE_BASE_ID")
     airtable_table_name = os.getenv("AIRTABLE_TABLE_NAME")
 
     if not all([airtable_api_key, airtable_base_id, airtable_table_name]):
-        raise ValueError("⚠️ تأكد من ضبط متغيرات Airtable في GitHub Secrets")
+        raise ValueError("⚠️ تأكد من ضبط متغيرات Airtable")
 
     airtable_url = f"https://api.airtable.com/v0/{airtable_base_id}/{airtable_table_name}"
     headers = {
         "Authorization": f"Bearer {airtable_api_key}",
         "Content-Type": "application/json"
     }
+
     data = {
         "fields": {
             "Videos": direct_link
