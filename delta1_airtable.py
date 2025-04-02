@@ -34,15 +34,15 @@ elif submission.url.endswith(('.mp4', '.m3u8')) or "v.redd.it" in submission.url
 if not video_url:
     raise ValueError("لم يتم العثور على فيديو في المنشور!")
 
-# استخدام مجلد مؤقت
+# استخدام مجلد مؤقت للفيديو فقط
 with tempfile.TemporaryDirectory() as tmp_dir:
     final_video_file = os.path.join(tmp_dir, "reddit_video_with_audio.mp4")
 
-    # فك الكوكيز من secret (إن وُجد)
+    # فك الكوكيز من Secret إلى الملف في نفس مجلد السكربت
     cookies_base64 = os.getenv("REDDIT_COOKIES_BASE64")
     cookies_path = None
     if cookies_base64:
-        cookies_path = os.path.join(tmp_dir, "cookies.txt")
+        cookies_path = "cookies.txt"
         with open(cookies_path, "wb") as f:
             f.write(base64.b64decode(cookies_base64))
 
@@ -53,8 +53,8 @@ with tempfile.TemporaryDirectory() as tmp_dir:
         'merge_output_format': 'mp4',
     }
 
-    if cookies_path:
-        ydl_opts['cookiefile'] = cookies_path  # ✅ تمرير الكوكيز فقط إذا وُجدت
+    if cookies_path and os.path.exists(cookies_path):
+        ydl_opts['cookiefile'] = cookies_path
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -63,7 +63,7 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     except Exception as e:
         raise Exception("❌ فشل تحميل الفيديو:", e)
 
-    # فك token.json من secret
+    # فك token.json من Secret
     token_base64 = os.getenv("GDRIVE_TOKEN_BASE64")
     if not token_base64:
         raise ValueError("⚠️ لم يتم العثور على Google Drive token")
@@ -92,11 +92,11 @@ with tempfile.TemporaryDirectory() as tmp_dir:
         body={'role': 'reader', 'type': 'anyone'}
     ).execute()
 
-    # إنشاء الرابط المباشر
+    # إنشاء رابط مباشر
     direct_link = f"https://drive.google.com/uc?export=download&id={file_id}"
     print(f"🔗 الرابط المباشر للفيديو: {direct_link}")
 
-    # إرسال الرابط إلى Airtable
+    # إعداد Airtable
     airtable_api_key = os.getenv("AIRTABLE_API_KEY")
     airtable_base_id = os.getenv("AIRTABLE_BASE_ID")
     airtable_table_name = os.getenv("AIRTABLE_TABLE_NAME")
@@ -121,3 +121,8 @@ with tempfile.TemporaryDirectory() as tmp_dir:
         print("✅ تم إرسال الرابط إلى Airtable بنجاح")
     else:
         print("❌ فشل في إرسال الرابط إلى Airtable:", response.text)
+
+# حذف ملف الكوكيز بعد الانتهاء
+if cookies_path and os.path.exists(cookies_path):
+    os.remove(cookies_path)
+    print("🧹 تم حذف ملف الكوكيز المؤقت.")
