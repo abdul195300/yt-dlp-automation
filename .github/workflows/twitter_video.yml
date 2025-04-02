@@ -1,33 +1,33 @@
-name: Twitter Video Extractor API
+name: Delta 1 - Reddit to Airtable
 
 on:
   workflow_dispatch:
     inputs:
-      tweet_url:
-        description: "رابط التغريدة"
+      reddit_url:
+        description: "رابط منشور Reddit"
         required: true
 
 jobs:
-  extract-video:
+  run-delta1:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🛠️ تحميل المستودع
+      - name: 🔄 تحميل المستودع
         uses: actions/checkout@v4
 
-      - name: 🐍 تثبيت Python والاعتماديات
+      - name: 🐍 إعداد Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.11'
 
-      - name: 📦 تثبيت yt-dlp و requests
+      - name: ⚙️ تثبيت الحزم
         run: |
-          python -m pip install --upgrade pip
-          pip install yt-dlp requests
-      - name: 🛠️ تثبيت tenacity
-        run: pip install tenacity   
+          pip install praw yt-dlp google-auth google-auth-oauthlib google-api-python-client requests
 
-      - name: 🎥 تشغيل كود استخراج الفيديو وإرساله إلى Airtable
+      - name: 🚀 تشغيل دلتا ١
         env:
-          TWEET_URL: ${{ github.event.inputs.tweet_url }}
-        run: python twitter_video.py
+          REDDIT_URL: ${{ github.event.inputs.reddit_url }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
+        run: python delta1_airtable.py
