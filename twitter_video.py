@@ -1,85 +1,104 @@
 import os
+import praw
+import yt_dlp
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google.auth.transport.requests import Request
 import requests
-import subprocess
+import json
+import tempfile
 
-# 🛠 إعداد متغيرات API
-AIRTABLE_API_KEY = "patS1VYb5EHfiXXBV.71390a90cefd89f88d05485625c803ba5df091b89acf76a160685dca3f4d46aa"
-AIRTABLE_BASE_ID = "app2j2xblYodCdMZQ"
-AIRTABLE_TABLE_NAME = "Table2"  # تأكد من أن اسم الجدول صحيح
-DROPBOX_ACCESS_TOKEN = "sl.u.AFiZSncnGgFKMVoCCzIPPCLQG8P27yrp4hlP_4e5fAbR3Q0jsX0xmEd8iBYbq9-ijIIRWKDSBSJl8K8izE2qiuH_-8217aycdf5bN5iXC9DBPmIPYUDVjy_fOf8njK7oZJ1GOhDZu7_EOIQ32DgAfFPZ_z-dDJJQQ_TqKlYR8xv29Fqbh5AxxbDvP2ioi7YPGWjBOLLHdn3sDAGQOXOzPFu685ZPn_5h_vw4hpcSuEMSFy2JdOhLs6XA9xrq1JTjwJLwpmfXiE3L-a-rcXwVsj6817bZC8DQStcOJx_86jN67agVQo7loebGqWmHqrEkKX-828RPYFrt1DTNN6JnjII0lvQOUXuMvYLQyC0X1QbKk0U_ylf6wsjsmOAwZWOn_hyeADXvZpk9iVRfkkTPjy02PvTTqFf_iioZWN-TKQTD1Pj4q7ZVBDATIk11ooQ_tjb_8kubrjoEIWYTcOqJd5I7KhMr-ht55N9A5f3C35czYXeRUtD7EFhDH6owavBYIlEnGS_PQIdixv4cMTz06qoV11Dop2xlV52FJFJxfZB2k-osW0Ag-tXLOQZCV1422QV5SHJGFBs1_qGZC5-YJvb5PxDYI5AFtMLgV8qyLS8WMvnLpGrzp868E88V2j6kubTegW-MewC2_XxlvA6y9cCUjPsUkkaHi0TxpuXMTMiwsX3B24fZ_NV9o3kAv5CX8iEq4OmM_CcMnM3ycVEdXRO_8XHSplFUVBr2smHpqlw2LZ5JyWsuXsfgynp0LDUbb1xB1LFRV82nyVIEYqBE0pPCiZlkT0f6GRFUiTfSaopnpbrM_KmjlUJlce9ZwcjvcdmziAyYQDkGTN4JtXONfJI3P7CmoWYqJoItQCR5PSe480Se--dayPt0wEIr1hHwdd-Ai7IeMMCb-p9nD3eKcKDGith7CtcUxfjmc_ae6vmQxmQM_2zmcvgzY20lzogWWPuzPQ7GnjwhXTDEcbz3OBqCCFrEPns1Ul3VCrk9CIrLrGYVjtJ6th2oyHHEZ66e5Aq6x26d54PpJaYE3LZK_vhWo4e1jBOCg3nA9TQJqGomqA37zh9NhKPjVFHk-7yXkdRy3l_0QOsX918SutYTWlLJShfi7YhI4hZUkVco0HsdVEjESD3nJmej7s0Yb3oqd-dOyERXIJI_jOAcfcBACHfa77OZcKskkVRUy-RHPjnbDLxuRRLgSLxXWWmgHDodNdsP2PiFL2FSmWxzZtuT7_AZ6fMjMIPb5ZFed81BjNm5pE2KKTOxikVfAKNUlKR5S7c"  # مفتاح Dropbox
+# أخذ رابط Reddit من المتغير البيئي
+post_url = os.getenv("REDDIT_URL")
+if not post_url:
+    raise ValueError("يجب توفير رابط Reddit من المتغير البيئي REDDIT_URL")
 
-# 🔍 استرجاع آخر تغريدة من Airtable
-AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
-HEADERS = {"Authorization": f"Bearer {AIRTABLE_API_KEY}"}
+# إعدادات Reddit API
+reddit = praw.Reddit(
+    client_id="UNKKLYTMC_CnFz-HByuvSQ",
+    client_secret="UqKoUtUNV7jrVDhg8FQIdaVl2YTmfg",
+    user_agent='u/Kitchen_Vehicle_8043',
+)
 
-response = requests.get(AIRTABLE_URL, headers=HEADERS)
-data = response.json()
+submission = reddit.submission(url=post_url)
 
-# 📌 استخراج الرابط من Airtable
-if "records" in data and data["records"]:
-    latest_record = data["records"][0]  # أول سجل في القائمة
-    record_id = latest_record["id"]
-    tweet_url = latest_record["fields"].get("tweet_url", "")
-else:
-    print("❌ لم يتم العثور على بيانات في Airtable!")
-    exit(1)
+# تأكيد وجود فيديو
+video_url = None
+if "media" in submission.__dict__ and submission.media and "reddit_video" in submission.media:
+    video_url = submission.media["reddit_video"]["fallback_url"]
+elif submission.url.endswith(('.mp4', '.m3u8')) or "v.redd.it" in submission.url:
+    video_url = submission.url
 
-if not tweet_url:
-    print("❌ لم يتم العثور على رابط تغريدة في Airtable!")
-    exit(1)
+if not video_url:
+    raise ValueError("لم يتم العثور على فيديو في المنشور!")
 
-print(f"🔗 تم العثور على رابط التغريدة: {tweet_url}")
+# استخدام مجلد مؤقت لحفظ الفيديو
+with tempfile.TemporaryDirectory() as tmp_dir:
+    final_video_file = os.path.join(tmp_dir, "reddit_video_with_audio.mp4")
 
-# 📥 تحميل الفيديو من تويتر باستخدام yt-dlp
-video_filename = "twitter_video.mp4"
-try:
-    subprocess.run(
-        ["yt-dlp", "-f", "best", "-o", video_filename, tweet_url], check=True
-    )
-except subprocess.CalledProcessError:
-    print("❌ فشل تحميل الفيديو من تويتر!")
-    exit(1)
-
-print("✅ تم تحميل الفيديو بنجاح!")
-
-# 📤 رفع الفيديو إلى Dropbox
-DROPBOX_UPLOAD_PATH = f"/{video_filename}"
-DROPBOX_UPLOAD_URL = "https://content.dropboxapi.com/2/files/upload"
-
-with open(video_filename, "rb") as f:
-    headers = {
-        "Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}",
-        "Dropbox-API-Arg": f'{{"path": "{DROPBOX_UPLOAD_PATH}", "mode": "add", "autorename": true, "mute": false}}',
-        "Content-Type": "application/octet-stream",
+    # تحميل باستخدام yt-dlp
+    ydl_opts = {
+        'outtmpl': final_video_file,
+        'format': 'bestvideo+bestaudio/best',
+        'merge_output_format': 'mp4',
     }
-    upload_response = requests.post(DROPBOX_UPLOAD_URL, headers=headers, data=f)
 
-if upload_response.status_code == 200:
-    print("✅ تم رفع الفيديو إلى Dropbox!")
-else:
-    print("❌ فشل رفع الفيديو إلى Dropbox!", upload_response.text)
-    exit(1)
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([post_url])
+        print("✅ تم تحميل الفيديو باستخدام yt-dlp")
+    except Exception as e:
+        raise Exception("❌ فشل تحميل الفيديو:", e)
 
-# 🔗 استخراج رابط المشاركة من Dropbox
-DROPBOX_SHARED_LINK_URL = "https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings"
-link_data = {"path": DROPBOX_UPLOAD_PATH, "settings": {"requested_visibility": "public"}}
-headers = {"Authorization": f"Bearer {DROPBOX_ACCESS_TOKEN}", "Content-Type": "application/json"}
+    # Google Drive API
+    SCOPES = ['https://www.googleapis.com/auth/drive']
+    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
 
-link_response = requests.post(DROPBOX_SHARED_LINK_URL, headers=headers, json=link_data)
+    service = build('drive', 'v3', credentials=creds)
 
-if link_response.status_code == 200:
-    dropbox_link = link_response.json()["url"].replace("?dl=0", "?raw=1")
-    print(f"✅ رابط الفيديو على Dropbox: {dropbox_link}")
-else:
-    print("❌ فشل إنشاء رابط مشاركة من Dropbox!", link_response.text)
-    exit(1)
+    # رفع إلى Google Drive
+    file_metadata = {'name': 'reddit_video_with_audio.mp4'}
+    media = MediaFileUpload(final_video_file, mimetype='video/mp4')
+    file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
 
-# 📌 تحديث Airtable بحقل `Video_File`
-update_url = f"{AIRTABLE_URL}/{record_id}"
-update_data = {"fields": {"Video_File": dropbox_link}}
-update_response = requests.patch(update_url, headers=HEADERS, json=update_data)
+    file_id = file.get('id')
+    print(f"✅ تم رفع الفيديو إلى Google Drive. ID: {file_id}")
 
-if update_response.status_code == 200:
-    print("✅ تم تحديث Airtable برابط الفيديو!")
-else:
-    print("❌ فشل تحديث Airtable!", update_response.text)
+    # جعل الملف عامًا
+    service.permissions().create(
+        fileId=file_id,
+        body={'role': 'reader', 'type': 'anyone'}
+    ).execute()
+
+    # إنشاء الرابط المباشر
+    direct_link = f"https://drive.google.com/uc?export=download&id={file_id}"
+    print(f"🔗 الرابط المباشر للفيديو: {direct_link}")
+
+    # إرسال الرابط إلى Airtable
+    airtable_api_key = os.getenv("AIRTABLE_API_KEY")
+    airtable_base_id = os.getenv("AIRTABLE_BASE_ID")
+    airtable_table_name = os.getenv("AIRTABLE_TABLE_NAME")
+
+    if not all([airtable_api_key, airtable_base_id, airtable_table_name]):
+        raise ValueError("⚠️ تأكد من ضبط متغيرات Airtable في GitHub Secrets")
+
+    airtable_url = f"https://api.airtable.com/v0/{airtable_base_id}/{airtable_table_name}"
+    headers = {
+        "Authorization": f"Bearer {airtable_api_key}",
+        "Content-Type": "application/json"
+    }
+
+    data = {
+        "fields": {
+            "Videos": direct_link
+        }
+    }
+
+    response = requests.post(airtable_url, headers=headers, data=json.dumps(data))
+    if response.status_code == 200 or response.status_code == 201:
+        print("✅ تم إرسال الرابط إلى Airtable بنجاح")
+    else:
+        print("❌ فشل في إرسال الرابط إلى Airtable:", response.text)
