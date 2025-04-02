@@ -52,14 +52,14 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     except Exception as e:
         raise Exception("❌ فشل تحميل الفيديو:", e)
 
-    
     # فك محتوى token.json من secret base64
     token_base64 = os.getenv("GDRIVE_TOKEN_BASE64")
     if not token_base64:
-    raise ValueError("⚠️ لم يتم العثور على Google Drive token في GDRIVE_TOKEN_BASE64")
+        raise ValueError("⚠️ لم يتم العثور على Google Drive token في GDRIVE_TOKEN_BASE64")
 
     with open("token.json", "wb") as f:
-    f.write(base64.b64decode(token_base64))
+        f.write(base64.b64decode(token_base64))
+
     # Google Drive API
     SCOPES = ['https://www.googleapis.com/auth/drive']
     creds = Credentials.from_authorized_user_file('token.json', SCOPES)
@@ -87,9 +87,9 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     print(f"🔗 الرابط المباشر للفيديو: {direct_link}")
 
     # إرسال الرابط إلى Airtable
-    airtable_api_key = os.getenv("patlIwVhOIXW99xWR.cc43327d6b5fbbaa249916012a53e925d4891ebf4be68e6e0a7f027c89703835")
-    airtable_base_id = os.getenv("app2j2xblYodCdMZQ")
-    airtable_table_name = os.getenv("Table1")
+    airtable_api_key = os.getenv("AIRTABLE_API_KEY")
+    airtable_base_id = os.getenv("AIRTABLE_BASE_ID")
+    airtable_table_name = os.getenv("AIRTABLE_TABLE_NAME")
 
     if not all([airtable_api_key, airtable_base_id, airtable_table_name]):
         raise ValueError("⚠️ تأكد من ضبط متغيرات Airtable في GitHub Secrets")
@@ -107,7 +107,7 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     }
 
     response = requests.post(airtable_url, headers=headers, data=json.dumps(data))
-    if response.status_code == 200 or response.status_code == 201:
+    if response.status_code in [200, 201]:
         print("✅ تم إرسال الرابط إلى Airtable بنجاح")
     else:
         print("❌ فشل في إرسال الرابط إلى Airtable:", response.text)
