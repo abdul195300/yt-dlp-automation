@@ -78,9 +78,9 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     print(f"🔗 الرابط المباشر للفيديو: {direct_link}")
 
     # إرسال الرابط إلى Airtable
-    airtable_api_key = os.getenv("AIRTABLE_API_KEY")
-    airtable_base_id = os.getenv("AIRTABLE_BASE_ID")
-    airtable_table_name = os.getenv("AIRTABLE_TABLE_NAME")
+    airtable_api_key = os.getenv("patlIwVhOIXW99xWR.cc43327d6b5fbbaa249916012a53e925d4891ebf4be68e6e0a7f027c89703835")
+    airtable_base_id = os.getenv("app2j2xblYodCdMZQ")
+    airtable_table_name = os.getenv("Table1")
 
     if not all([airtable_api_key, airtable_base_id, airtable_table_name]):
         raise ValueError("⚠️ تأكد من ضبط متغيرات Airtable في GitHub Secrets")
