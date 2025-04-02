@@ -8,6 +8,7 @@ from google.auth.transport.requests import Request
 import requests
 import json
 import tempfile
+import base64
 
 # أخذ رابط Reddit من المتغير البيئي
 post_url = os.getenv("REDDIT_URL")
@@ -51,6 +52,14 @@ with tempfile.TemporaryDirectory() as tmp_dir:
     except Exception as e:
         raise Exception("❌ فشل تحميل الفيديو:", e)
 
+    
+    # فك محتوى token.json من secret base64
+    token_base64 = os.getenv("GDRIVE_TOKEN_BASE64")
+    if not token_base64:
+    raise ValueError("⚠️ لم يتم العثور على Google Drive token في GDRIVE_TOKEN_BASE64")
+
+    with open("token.json", "wb") as f:
+    f.write(base64.b64decode(token_base64))
     # Google Drive API
     SCOPES = ['https://www.googleapis.com/auth/drive']
     creds = Credentials.from_authorized_user_file('token.json', SCOPES)
