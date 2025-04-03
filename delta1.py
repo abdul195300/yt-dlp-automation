@@ -49,36 +49,23 @@ if not video_url:
 
 logger.info(f"Video URL found: {video_url}")
 
-# فك تشفير الكوكيز من REDDIT_COOKIES_BASE64 وحفظها في ملف مؤقت
-cookies_base64 = os.getenv("REDDIT_COOKIES_BASE64")
-if not cookies_base64:
-    logger.error("REDDIT_COOKIES_BASE64 is not set!")
-    raise ValueError("REDDIT_COOKIES_BASE64 is not set!")
+# التحقق من بيانات تسجيل الدخول
+reddit_username = os.getenv("REDDIT_USERNAME")
+reddit_password = os.getenv("REDDIT_PASSWORD")
+if not all([reddit_username, reddit_password]):
+    logger.error("REDDIT_USERNAME or REDDIT_PASSWORD is not set!")
+    raise ValueError("REDDIT_USERNAME or REDDIT_PASSWORD is not set!")
 
-try:
-    cookies_data = base64.b64decode(cookies_base64).decode('utf-8')
-except Exception as e:
-    logger.error(f"Failed to decode REDDIT_COOKIES_BASE64: {e}")
-    raise
-
-cookies_file = "reddit_cookies.txt"
-try:
-    with open(cookies_file, "w") as f:
-        f.write(cookies_data)
-    logger.info("Cookies file created successfully")
-except Exception as e:
-    logger.error(f"Failed to write cookies file: {e}")
-    raise
-
-# تحميل الفيديو مع الصوت باستخدام الكوكيز
+# تحميل الفيديو مع الصوت باستخدام بيانات تسجيل الدخول
 final_video_file = "reddit_video_with_audio.mp4"
 ydl_opts = {
     'outtmpl': final_video_file,
     'format': 'bestvideo+bestaudio/best',
     'merge_output_format': 'mp4',
-    'cookies': cookies_file,  # تمرير ملف الكوكيز
-    'quiet': False,  # إزالة الوضع الهادئ للحصول على تفاصيل أكثر
-    'verbose': True,  # إضافة التفاصيل لتتبع الأخطاء
+    'username': reddit_username,  # إضافة اسم المستخدم
+    'password': reddit_password,  # إضافة كلمة المرور
+    'quiet': False,
+    'verbose': True,
 }
 
 try:
@@ -189,8 +176,5 @@ try:
     if os.path.exists(final_video_file):
         os.remove(final_video_file)
         logger.info(f"Local file deleted: {final_video_file}")
-    if os.path.exists(cookies_file):
-        os.remove(cookies_file)
-        logger.info(f"Cookies file deleted: {cookies_file}")
 except Exception as e:
-    logger.warning(f"Failed to delete local files: {e}")
+    logger.warning(f"Failed to delete local file: {e}")
