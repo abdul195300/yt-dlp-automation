@@ -1,41 +1,76 @@
-name: Delta 1 - Reddit Video to Google Drive
+import praw
+import yt_dlp
+import os
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google.auth.transport.requests import Request
+import json
 
-on:
-  workflow_dispatch:  # يتيح التشغيل اليدوي
-  schedule:
-    - cron: '0 0 * * *'  # يعمل يوميًا عند منتصف الليل UTC
+# إعدادات Reddit API من المتغيرات البيئية
+reddit = praw.Reddit(
+    client_id=os.getenv("REDDIT_CLIENT_ID"),
+    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+    user_agent=os.getenv("REDDIT_USER_AGENT"),
+)
 
-jobs:
-  upload-video:
-    runs-on: ubuntu-latest
+# رابط المنشور من متغير بيئي
+post_url = os.getenv("REDDIT_POST_URL")
+submission = reddit.submission(url=post_url)
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+# استخراج رابط الفيديو
+video_url = None
+if "media" in submission.__dict__ and submission.media and "reddit_video" in submission.media:
+    video_url = submission.media["reddit_video"]["fallback_url"]
+elif submission.url.endswith(('.mp4', '.m3u8')) or "v.redd.it" in submission.url:
+    video_url = submission.url
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+if not video_url:
+    raise ValueError("No video found in the post!")
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install praw yt-dlp google-auth-oauthlib google-auth-httplib2 google-api-python-client
+# تحميل الفيديو مع الصوت
+final_video_file = "reddit_video_with_audio.mp4"
+ydl_opts = {
+    'outtmpl': final_video_file,
+    'format': 'bestvideo+bestaudio/best',
+    'merge_output_format': 'mp4',
+    'quiet': True,
+}
 
-      - name: Run Delta 1 script
-        env:
-          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
-          REDDIT_POST_URL: ${{ secrets.REDDIT_POST_URL }}
-          GOOGLE_CREDENTIALS: ${{ secrets.GDRIVE_TOKEN_BASE64 }}
-        run: |
-          python delta1.py
+with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    ydl.download([post_url])
+print("Video downloaded successfully")
 
-      - name: Upload logs (optional)
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: logs
-          path: "*.log"
+# إعداد Google Drive API
+SCOPES = ['https://www.googleapis.com/auth/drive']
+creds_json = os.getenv("GOOGLE_CREDENTIALS")  # يتم تمريره كـ JSON string
+creds_dict = json.loads(creds_json)
+creds = Credentials.from_authorized_user_info(creds_dict, SCOPES)
+
+if creds and creds.expired and creds.refresh_token:
+    creds.refresh(Request())
+
+service = build('drive', 'v3', credentials=creds)
+
+# رفع الفيديو إلى Google Drive
+file_metadata = {'name': 'reddit_video_with_audio.mp4'}
+media = MediaFileUpload(final_video_file, mimetype='video/mp4')
+file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+
+file_id = file.get('id')
+print(f"Video uploaded to Google Drive! File ID: {file_id}")
+
+# جعل الملف عامًا
+service.permissions().create(
+    fileId=file_id,
+    body={'role': 'reader', 'type': 'anyone'}
+).execute()
+
+# إنشاء الرابط المباشر
+direct_link = f"https://drive.google.com/uc?export=download&id={file_id}"
+print(f"Direct link: {direct_link}")
+
+# حذف الملف المحلي
+if os.path.exists(final_video_file):
+    os.remove(final_video_file)
+    print(f"Local file deleted: {final_video_file}")
