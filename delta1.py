@@ -14,12 +14,11 @@ import requests
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# إعدادات Reddit API من المتغيرات البيئية (OAuth كاملة)
+# إعدادات Reddit API باستخدام OAuth Refresh Token
 reddit = praw.Reddit(
     client_id=os.getenv("REDDIT_CLIENT_ID"),
     client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-    username=os.getenv("REDDIT_USERNAME"),
-    password=os.getenv("REDDIT_PASSWORD"),
+    refresh_token=os.getenv("REDDIT_REFRESH_TOKEN"),
     user_agent=os.getenv("REDDIT_USER_AGENT"),
 )
 
