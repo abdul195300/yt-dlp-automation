@@ -1,33 +1,30 @@
-name: Delta 1 - Reddit to Airtable
+name: 🚀 تشغيل دلتا ١
 
 on:
-  workflow_dispatch:
-    inputs:
-      reddit_url:
-        description: "رابط منشور Reddit"
-        required: true
+  workflow_dispatch:  # تشغيل يدوي من واجهة GitHub
 
 jobs:
   run-delta1:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🔄 تحميل المستودع
-        uses: actions/checkout@v4
+      - name: 🧾 تحميل المستودع
+        uses: actions/checkout@v3
 
       - name: 🐍 إعداد Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: ⚙️ تثبيت الحزم
-        run: |
-          pip install praw yt-dlp google-auth google-auth-oauthlib google-api-python-client requests
+      - name: ⚙️ تثبيت الحزم المطلوبة
+        run: pip install -r requirements.txt
 
       - name: 🚀 تشغيل دلتا ١
+        run: python delta1_airtable.py
         env:
-          REDDIT_URL: ${{ github.event.inputs.reddit_url }}
+          REDDIT_URL: ${{ secrets.REDDIT_URL }}
+          REDDIT_COOKIES_BASE64: ${{ secrets.REDDIT_COOKIES_BASE64 }}
+          GDRIVE_TOKEN_BASE64: ${{ secrets.GDRIVE_TOKEN_BASE64 }}
           AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
           AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
-        run: python delta1_airtable.py
