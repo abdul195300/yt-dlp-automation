@@ -38,7 +38,8 @@ jobs:
 
       - name: Upload logs (optional)
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # تحديث إلى v4
         with:
           name: logs
           path: "*.log"
+          if-no-files-found: warn  # إذا لم يتم العثور على ملفات، فقط أعط تحذيرًا
