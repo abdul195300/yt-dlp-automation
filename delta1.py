@@ -1,11 +1,13 @@
 import praw
 import yt_dlp
 import os
+import base64
+import json
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.auth.transport.requests import Request
-import json
+import requests
 
 # إعدادات Reddit API من المتغيرات البيئية
 reddit = praw.Reddit(
@@ -43,7 +45,8 @@ print("Video downloaded successfully")
 
 # إعداد Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
-creds_json = os.getenv("GOOGLE_CREDENTIALS")  # يتم تمريره كـ JSON string
+creds_json_base64 = os.getenv("GDRIVE_TOKEN_BASE64")
+creds_json = base64.b64decode(creds_json_base64).decode('utf-8')
 creds_dict = json.loads(creds_json)
 creds = Credentials.from_authorized_user_info(creds_dict, SCOPES)
 
@@ -69,6 +72,40 @@ service.permissions().create(
 # إنشاء الرابط المباشر
 direct_link = f"https://drive.google.com/uc?export=download&id={file_id}"
 print(f"Direct link: {direct_link}")
+
+# إعداد Airtable API
+AIRTABLE_API_KEY = os.getenv("AIRTABLE_API_KEY")
+AIRTABLE_BASE_ID = os.getenv("AIRTABLE_BASE_ID")
+AIRTABLE_TABLE_NAME = os.getenv("AIRTABLE_TABLE_NAME")
+
+# رابط API لـ Airtable
+airtable_url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
+
+# إعداد الرأس (headers) للمصادقة
+headers = {
+    "Authorization": f"Bearer {AIRTABLE_API_KEY}",
+    "Content-Type": "application/json"
+}
+
+# إنشاء سجل جديد في Airtable مع الرابط في حقل Videos
+data = {
+    "records": [
+        {
+            "fields": {
+                "Videos": direct_link
+            }
+        }
+    ]
+}
+
+# إرسال الطلب إلى Airtable
+response = requests.post(airtable_url, headers=headers, json=data)
+
+# التحقق من نجاح الطلب
+if response.status_code == 200:
+    print("Direct link successfully sent to Airtable in the 'Videos' field!")
+else:
+    print(f"Failed to send link to Airtable. Status code: {response.status_code}, Response: {response.text}")
 
 # حذف الملف المحلي
 if os.path.exists(final_video_file):
