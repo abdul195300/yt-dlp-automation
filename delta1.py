@@ -14,10 +14,12 @@ import requests
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# إعدادات Reddit API من المتغيرات البيئية
+# إعدادات Reddit API من المتغيرات البيئية (OAuth كاملة)
 reddit = praw.Reddit(
     client_id=os.getenv("REDDIT_CLIENT_ID"),
     client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+    username=os.getenv("REDDIT_USERNAME"),
+    password=os.getenv("REDDIT_PASSWORD"),
     user_agent=os.getenv("REDDIT_USER_AGENT"),
 )
 
@@ -49,21 +51,12 @@ if not video_url:
 
 logger.info(f"Video URL found: {video_url}")
 
-# التحقق من بيانات تسجيل الدخول
-reddit_username = os.getenv("REDDIT_USERNAME")
-reddit_password = os.getenv("REDDIT_PASSWORD")
-if not all([reddit_username, reddit_password]):
-    logger.error("REDDIT_USERNAME or REDDIT_PASSWORD is not set!")
-    raise ValueError("REDDIT_USERNAME or REDDIT_PASSWORD is not set!")
-
-# تحميل الفيديو مع الصوت باستخدام بيانات تسجيل الدخول
+# تحميل الفيديو مع الصوت باستخدام yt-dlp (بدون كوكيز)
 final_video_file = "reddit_video_with_audio.mp4"
 ydl_opts = {
     'outtmpl': final_video_file,
     'format': 'bestvideo+bestaudio/best',
     'merge_output_format': 'mp4',
-    'username': reddit_username,  # إضافة اسم المستخدم
-    'password': reddit_password,  # إضافة كلمة المرور
     'quiet': False,
     'verbose': True,
 }
@@ -162,7 +155,7 @@ data = {
 # إرسال الطلب إلى Airtable
 try:
     response = requests.post(airtable_url, headers=headers, json=data)
-    if response.status_code == 200:
+    if response.status_code == 200 or response.status_code == 201:
         logger.info("Direct link successfully sent to Airtable in the 'Videos' field!")
     else:
         logger.error(f"Failed to send link to Airtable. Status code: {response.status_code}, Response: {response.text}")
