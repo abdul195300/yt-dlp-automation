@@ -30,13 +30,24 @@ elif submission.url.endswith(('.mp4', '.m3u8')) or "v.redd.it" in submission.url
 if not video_url:
     raise ValueError("No video found in the post!")
 
-# تحميل الفيديو مع الصوت
+# فك تشفير الكوكيز من REDDIT_COOKIES_BASE64 وحفظها في ملف مؤقت
+cookies_base64 = os.getenv("REDDIT_COOKIES_BASE64")
+if not cookies_base64:
+    raise ValueError("REDDIT_COOKIES_BASE64 is not set!")
+
+cookies_data = base64.b64decode(cookies_base64).decode('utf-8')
+cookies_file = "reddit_cookies.txt"
+with open(cookies_file, "w") as f:
+    f.write(cookies_data)
+
+# تحميل الفيديو مع الصوت باستخدام الكوكيز
 final_video_file = "reddit_video_with_audio.mp4"
 ydl_opts = {
     'outtmpl': final_video_file,
     'format': 'bestvideo+bestaudio/best',
     'merge_output_format': 'mp4',
     'quiet': True,
+    'cookies': cookies_file,  # تمرير ملف الكوكيز
 }
 
 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -107,7 +118,11 @@ if response.status_code == 200:
 else:
     print(f"Failed to send link to Airtable. Status code: {response.status_code}, Response: {response.text}")
 
-# حذف الملف المحلي
+# حذف الملفات المحلية
 if os.path.exists(final_video_file):
     os.remove(final_video_file)
     print(f"Local file deleted: {final_video_file}")
+
+if os.path.exists(cookies_file):
+    os.remove(cookies_file)
+    print(f"Cookies file deleted: {cookies_file}")
