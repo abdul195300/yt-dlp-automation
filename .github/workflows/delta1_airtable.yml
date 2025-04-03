@@ -1,30 +1,44 @@
-name: 🚀 تشغيل دلتا ١
+name: Delta 1 - Reddit Video to Google Drive
 
 on:
-  workflow_dispatch:  # تشغيل يدوي من واجهة GitHub
+  workflow_dispatch:
+    inputs:
+      reddit_post_url:
+        description: 'Reddit post URL containing the video'
+        required: true
+        default: 'https://www.reddit.com/r/interestingasfuck/comments/1jpr7ub/you_might_see_100x_more_colors/'
 
 jobs:
-  run-delta1:
+  upload-video:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧾 تحميل المستودع
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: 🐍 إعداد Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.9'
 
-      - name: ⚙️ تثبيت الحزم المطلوبة
-        run: pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install praw yt-dlp google-auth-oauthlib google-auth-httplib2 google-api-python-client
 
-      - name: 🚀 تشغيل دلتا ١
-        run: python delta1_airtable.py
+      - name: Run Delta 1 script
         env:
-          REDDIT_URL: ${{ secrets.REDDIT_URL }}
-          REDDIT_COOKIES_BASE64: ${{ secrets.REDDIT_COOKIES_BASE64 }}
-          GDRIVE_TOKEN_BASE64: ${{ secrets.GDRIVE_TOKEN_BASE64 }}
-          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
-          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
-          AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
+          REDDIT_POST_URL: ${{ github.event.inputs.reddit_post_url }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: |
+          python delta1.py
+
+      - name: Upload logs (optional)
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: logs
+          path: "*.log"
