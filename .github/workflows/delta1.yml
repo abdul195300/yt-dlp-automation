@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install praw yt-dlp google-auth-oauthlib google-auth-httplib2 google-api-python-client
+          pip install praw yt-dlp google-auth-oauthlib google-auth-httplib2 google-api-python-client requests
 
       - name: Run Delta 1 script
         env:
@@ -32,14 +32,17 @@ jobs:
           REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
           REDDIT_POST_URL: ${{ github.event.inputs.reddit_post_url }}
-          GOOGLE_CREDENTIALS: ${{ GDRIVE_TOKEN_BASE64 }}
+          GDRIVE_TOKEN_BASE64: ${{ secrets.GDRIVE_TOKEN_BASE64 }}
+          AIRTABLE_API_KEY: ${{ secrets.AIRTABLE_API_KEY }}
+          AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+          AIRTABLE_TABLE_NAME: ${{ secrets.AIRTABLE_TABLE_NAME }}
         run: |
           python delta1.py
 
       - name: Upload logs (optional)
         if: always()
-        uses: actions/upload-artifact@v4  # تحديث إلى v4
+        uses: actions/upload-artifact@v4
         with:
           name: logs
           path: "*.log"
-          if-no-files-found: warn  # إذا لم يتم العثور على ملفات، فقط أعط تحذيرًا
+          if-no-files-found: warn
